@@ -1,4 +1,44 @@
 services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinelpassword
+      POSTGRES_DB: sentinel_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - sentinel_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  temporal:
+    image: temporalio/auto-setup:1.24
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+    environment:
+      - DB=sqlite
+      - USE_INTERNAL_FE=true
+
+  sentinel-worker:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    command: python3 -m backend.workflow_engine.worker
+    environment:
+      SENTINEL_ENV: production
+      DATABASE_URL: postgresql://sentinel:sentinelpassword@postgres:5432/sentinel_db
+      TEMPORAL_URL: temporal:7233
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on:
+      - temporal
+      - postgres
+      - redis
+
   sentinel-api:
     build:
       context: .
@@ -8,11 +48,16 @@ services:
       SENTINEL_ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
       SENTINEL_ALLOWED_REPO_ROOTS: /app
       SENTINEL_AUTH_SECRET: change-me-for-local-demo
+      DATABASE_URL: postgresql://sentinel:sentinelpassword@postgres:5432/sentinel_db
+      TEMPORAL_URL: temporal:7233
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports:
       - "8000:8000"
     volumes:
       - ./examples:/app/examples:ro
+    depends_on:
+      - postgres
+      - temporal
 
   sentinel-frontend:
     image: node:22-alpine
@@ -31,3 +76,4 @@ services:
 
 volumes:
   sentinel_frontend_node_modules:
+  sentinel_postgres_data:

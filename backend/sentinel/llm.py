@@ -107,7 +107,77 @@ class AnthropicLLMProvider:
         return LLMCompletion(text=text, model=self._model, provider=self.provider_name)
 
 
+class OpenRouterLLMProvider:
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        model: str = "openai/gpt-4o-mini",
+        timeout_seconds: int,
+    ) -> None:
+        self._api_key = api_key
+        self._model = model
+        self._timeout_seconds = timeout_seconds
+
+    @property
+    def is_available(self) -> bool:
+        return bool(self._api_key)
+
+    @property
+    def provider_name(self) -> str:
+        return "openrouter"
+
+    def complete(self, *, system: str, prompt: str, max_tokens: int = 2048) -> LLMCompletion:
+        if not self._api_key:
+            raise LLMError("OPENROUTER_API_KEY is not configured")
+        
+        body = {
+            "model": self._model,
+            "max_tokens": max_tokens,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt}
+            ],
+        }
+        
+        request = urllib.request.Request(
+            "https://openrouter.ai/api/v1/chat/completions",
+            data=json.dumps(body).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {self._api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+        try:
+            import ssl
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            with urllib.request.urlopen(request, timeout=self._timeout_seconds, context=ctx) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise LLMError(f"OpenRouter request failed: HTTP {exc.code}: {detail}") from exc
+        except OSError as exc:
+            raise LLMError(f"OpenRouter request failed: {exc}") from exc
+
+        try:
+            text = payload["choices"][0]["message"]["content"]
+        except (KeyError, IndexError) as exc:
+            raise LLMError("OpenRouter response did not include valid content") from exc
+            
+        return LLMCompletion(text=text.strip(), model=self._model, provider=self.provider_name)
+
+
 def build_llm_provider(settings: Settings) -> LLMProvider:
+    or_api_key = os.getenv("OPENROUTER_API_KEY", "")
+    if or_api_key:
+        return OpenRouterLLMProvider(
+            api_key=or_api_key,
+            timeout_seconds=settings.llm_timeout_seconds,
+        )
+
     api_key = settings.anthropic_api_key or os.getenv("ANTHROPIC_API_KEY", "")
     if api_key:
         return AnthropicLLMProvider(

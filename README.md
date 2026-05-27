@@ -1,6 +1,29 @@
-# Project Sentinel
+# Project Sentinel (Elite-State Architecture)
 
-Autonomous codebase auditing and remediation swarm with typed orchestration, deterministic repository memory, sandbox validation, live telemetry, approval, and rollback.
+Autonomous DevSecOps swarm featuring hardware-isolated Firecracker microVMs, deterministic Temporal workflows, Pydantic-enforced LLM agents, and proper Role-Based Access Control (RBAC).
+
+## Architecture 
+
+```mermaid
+graph TD
+    A[Frontend UI] -->|JWT Auth| B(FastAPI Backend)
+    G[GitHub App Webhook] -->|HMAC Verified| B
+    B --> C{Temporal Workflow Engine}
+    C -->|Durable State| DB[(PostgreSQL)]
+    C -->|Distributed Tasks| W[Sentinel Workers]
+    
+    subgraph "Agent Swarm (Strict JSON Schemas)"
+        W --> D[Architect]
+        W --> E[Scout]
+        W --> F[Engineer / Critic]
+    end
+    
+    subgraph "Hardware Isolation"
+        F -->|Vsock RPC| S[Sandbox Service]
+        S -->|Creates| VM[Firecracker MicroVM]
+        VM -->|Executes Code| S
+    end
+```
 
 ## Quick Start
 

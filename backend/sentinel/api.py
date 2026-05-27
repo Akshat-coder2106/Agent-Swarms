@@ -361,14 +361,14 @@ async def create_pr(
 
 @app.get("/api/metrics")
 async def get_metrics_summary(_principal: Annotated[Principal, Depends(require_auth)]) -> dict:
-    sessions = await orchestrator.list()
+    sessions = await orchestrator._store.list()
     total = len(sessions)
     if total == 0:
         return {"mttr_minutes": 0, "approval_rate": 0, "resolved_findings": 0, "total_findings": 0, "sandbox_pass_rate": 0}
         
     resolved = sum(1 for s in sessions if s.approved_patch_id)
-    total_findings = sum(len(s.findings) for s in sessions)
-    resolved_findings = sum(len(s.findings) for s in sessions if s.approved_patch_id)
+    total_findings = sum(len(s.memory.findings) for s in sessions if s.memory)
+    resolved_findings = sum(len(s.memory.findings) for s in sessions if s.memory and s.approved_patch_id)
     
     # Calculate MTTR (mocked slightly based on sessions for demo if too fast)
     mttr = 12.5 # minutes average

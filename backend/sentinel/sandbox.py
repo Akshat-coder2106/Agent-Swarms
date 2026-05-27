@@ -88,13 +88,23 @@ class SandboxRunner:
         wasm_sandbox = WasmtimeSandbox(WasmConfig())
         wasm_result = wasm_sandbox.validate_patch(repo_root, memory, patch)
         
-        with tempfile.TemporaryDirectory(prefix="sentinel-sandbox-", dir="/tmp") as sandbox_dir:
-            workspace = Path(sandbox_dir) / "workspace"
+        from sandbox_service.pool_manager import PoolManager
+        if not hasattr(self, "_pool"):
+            self._pool = PoolManager(pool_size=1)
+            
+        vm = self._pool.acquire()
+        try:
+            workspace = vm.workspace_dir
+            if workspace.exists():
+                shutil.rmtree(workspace)
             shutil.copytree(repo_root, workspace, ignore=_ignore)
             self._apply_patch(workspace, patch)
-            stdout, stderr, exit_code = self._run_validation_commands(workspace, memory.validation_commands)
+            
+            stdout, stderr, exit_code = self._run_validation_commands(vm, memory.validation_commands)
             passing_tests, total_tests = _parse_total_tests(stdout, stderr, exit_code)
             patched_memory = self._ingestor.ingest(str(workspace))
+        finally:
+            self._pool.release(vm)
 
         # Merge local sandbox with Wasmtime VM outputs
         if wasm_result["exit_code"] != 0 and exit_code == 0:
@@ -169,44 +179,35 @@ class SandboxRunner:
 
     def _run_validation_commands(
         self,
-        workspace: Path,
+        vm: Any,
         commands: list[list[str]],
     ) -> tuple[str, str, int]:
         stdout_parts: list[str] = []
         stderr_parts: list[str] = []
+        final_exit_code = 0
+        
         for command in commands:
             if not command:
                 continue
             executable = Path(command[0]).name
             if executable not in ALLOWED_EXECUTABLES:
                 return "", f"Command executable is not allowed in sandbox: {executable}", 126
-            env = {
-                "PATH": os.environ.get("PATH", "/usr/bin:/bin"),
-                "PYTHONPATH": str(workspace),
-                "CI": "true",
-                "NO_COLOR": "1",
-            }
+                
             try:
-                completed = subprocess.run(  # noqa: S603
-                    command,
-                    cwd=workspace,
-                    env=env,
-                    text=True,
-                    capture_output=True,
-                    timeout=self._settings.sandbox_timeout_seconds,
-                    shell=False,
-                    preexec_fn=_limit_child_resources,
-                    check=False,
-                )
-            except subprocess.TimeoutExpired as exc:
-                stdout_parts.append(exc.stdout or "")
-                stderr_parts.append((exc.stderr or "") + "\nSandbox command timed out")
-                return "\n".join(stdout_parts), "\n".join(stderr_parts), 124
-            stdout_parts.append(completed.stdout)
-            stderr_parts.append(completed.stderr)
-            if completed.returncode != 0:
-                return "\n".join(stdout_parts), "\n".join(stderr_parts), completed.returncode
-        return "\n".join(stdout_parts), "\n".join(stderr_parts), 0
+                result = vm.execute_command(command, timeout=self._settings.sandbox_timeout_seconds)
+                stdout_parts.append(result.get("stdout", ""))
+                stderr_parts.append(result.get("stderr", ""))
+                
+                exit_code = result.get("exit_code", 1)
+                if exit_code != 0:
+                    final_exit_code = exit_code
+                    break
+            except Exception as exc:
+                stderr_parts.append(f"Firecracker VM Error: {exc}")
+                final_exit_code = 125
+                break
+
+        return "\n".join(stdout_parts), "\n".join(stderr_parts), final_exit_code
 
     def _finding_resolution(
         self,
