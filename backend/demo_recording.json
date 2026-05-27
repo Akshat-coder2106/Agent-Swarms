@@ -1,0 +1,854 @@
+{
+  "session": {
+    "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+    "objective": "Audit for demo",
+    "repo_path": "/Users/akshatagrawal/Desktop/Agent Swarms/examples/python-vulnerable-api",
+    "status": "ESCALATED",
+    "created_at": "2026-05-27T16:51:55.495694Z",
+    "updated_at": "2026-05-27T16:51:55.502567Z",
+    "memory": {
+      "root_path": "/Users/akshatagrawal/Desktop/Agent Swarms/examples/python-vulnerable-api",
+      "files_indexed": 4,
+      "chunks": [
+        {
+          "chunk_id": "chunk_5e52f82711c4b061",
+          "file_path": "app/__init__.py",
+          "start_line": 1,
+          "end_line": 1,
+          "text": "\"\"\"Demo application used by Project Sentinel tests.\"\"\"",
+          "token_fingerprint": "d1fe1d377cc3b1204b8f7ab1c2fdcb4b5f05d5e8fe59b6e3724608aaa04658a6"
+        },
+        {
+          "chunk_id": "chunk_5b287a8909f90724",
+          "file_path": "app/users.py",
+          "start_line": 1,
+          "end_line": 71,
+          "text": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)",
+          "token_fingerprint": "a103b27a5eaf278b1ce7215e027e9e270316d7399a61cdd898b80f9a986f6ae7"
+        },
+        {
+          "chunk_id": "chunk_06d8dc9123bdb545",
+          "file_path": "sentinel.json",
+          "start_line": 1,
+          "end_line": 4,
+          "text": "{\n  \"setup_commands\": [[\"pip\", \"install\", \"flask\", \"pyyaml\"]],\n  \"validation_commands\": [[\"python3\", \"-m\", \"unittest\", \"discover\", \"-s\", \"tests\"]]\n}",
+          "token_fingerprint": "e62cb9c42a74a91ca17b34554903f2c5f318b5ea96d8bcc947542e62940cba2f"
+        },
+        {
+          "chunk_id": "chunk_4e5ad92b6633f231",
+          "file_path": "tests/test_users.py",
+          "start_line": 1,
+          "end_line": 31,
+          "text": "from __future__ import annotations\n\nimport unittest\nfrom app.users import search_users, get_db_credentials, generate_reset_token, app\n\nclass VulnerableAppTests(unittest.TestCase):\n    def setUp(self):\n        self.client = app.test_client()\n\n    def test_search_by_name(self) -> None:\n        response = self.client.get(\"/search?name=Ada\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"results\"], [[1, \"Ada\"]])\n\n    def test_search_without_match(self) -> None:\n        response = self.client.get(\"/search?name=Katherine\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"results\"], [])\n        \n    def test_credentials(self) -> None:\n        aws, pwd = get_db_credentials()\n        self.assertTrue(len(aws) > 0)\n        self.assertTrue(len(pwd) > 0)\n        \n    def test_math(self) -> None:\n        response = self.client.get(\"/math?expr=5*5\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"result\"], 25)\n\nif __name__ == \"__main__\":\n    unittest.main()",
+          "token_fingerprint": "6c22a2c5016dcd12135be0d6f4b25096c3b330c1318d0ef7363bc92f87d64d89"
+        }
+      ],
+      "symbols": [
+        {
+          "symbol_id": "sym_8ffe8e1db34997f0",
+          "name": "get_db_credentials",
+          "kind": "function",
+          "file_path": "app/users.py",
+          "start_line": 13,
+          "end_line": 16
+        },
+        {
+          "symbol_id": "sym_95cbff255653e9c8",
+          "name": "initialize_database",
+          "kind": "function",
+          "file_path": "app/users.py",
+          "start_line": 19,
+          "end_line": 23
+        },
+        {
+          "symbol_id": "sym_fc79750717950c5a",
+          "name": "search_users",
+          "kind": "function",
+          "file_path": "app/users.py",
+          "start_line": 29,
+          "end_line": 33
+        },
+        {
+          "symbol_id": "sym_cca2eb049bdbb92e",
+          "name": "download_file",
+          "kind": "function",
+          "file_path": "app/users.py",
+          "start_line": 37,
+          "end_line": 39
+        },
+        {
+          "symbol_id": "sym_226501e504960c2c",
+          "name": "load_config",
+          "kind": "function",
+          "file_path": "app/users.py",
+          "start_line": 43,
+          "end_line": 47
+        },
+        {
+          "symbol_id": "sym_c8681537d25fa309",
+          "name": "parse_yaml",
+          "kind": "function",
+          "file_path": "app/users.py",
+          "start_line": 51,
+          "end_line": 55
+        },
+        {
+          "symbol_id": "sym_2ae2473059a488bd",
+          "name": "calculate",
+          "kind": "function",
+          "file_path": "app/users.py",
+          "start_line": 59,
+          "end_line": 63
+        },
+        {
+          "symbol_id": "sym_39e6367c63f29a0c",
+          "name": "generate_reset_token",
+          "kind": "function",
+          "file_path": "app/users.py",
+          "start_line": 66,
+          "end_line": 68
+        },
+        {
+          "symbol_id": "sym_6cc4d31ae84f587e",
+          "name": "VulnerableAppTests",
+          "kind": "class",
+          "file_path": "tests/test_users.py",
+          "start_line": 6,
+          "end_line": 28
+        },
+        {
+          "symbol_id": "sym_a3315f710fb74db5",
+          "name": "setUp",
+          "kind": "function",
+          "file_path": "tests/test_users.py",
+          "start_line": 7,
+          "end_line": 8
+        },
+        {
+          "symbol_id": "sym_b3611fc6ee0fbfc2",
+          "name": "test_search_by_name",
+          "kind": "function",
+          "file_path": "tests/test_users.py",
+          "start_line": 10,
+          "end_line": 13
+        },
+        {
+          "symbol_id": "sym_e852e6edd703ac9a",
+          "name": "test_search_without_match",
+          "kind": "function",
+          "file_path": "tests/test_users.py",
+          "start_line": 15,
+          "end_line": 18
+        },
+        {
+          "symbol_id": "sym_247ee0ca00ecf9b5",
+          "name": "test_credentials",
+          "kind": "function",
+          "file_path": "tests/test_users.py",
+          "start_line": 20,
+          "end_line": 23
+        },
+        {
+          "symbol_id": "sym_43654e1cc2a19d7b",
+          "name": "test_math",
+          "kind": "function",
+          "file_path": "tests/test_users.py",
+          "start_line": 25,
+          "end_line": 28
+        }
+      ],
+      "edges": [],
+      "findings": [
+        {
+          "finding_id": "finding_feaf4cbccac6474c9544c3fecd67ff36",
+          "rule_id": "python.sql_injection.fstring",
+          "title": "SQL query uses f-string interpolation",
+          "category": "INJECTION",
+          "severity": "HIGH",
+          "file_path": "app/users.py",
+          "line": 31,
+          "snippet": "query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"",
+          "confidence": 0.92,
+          "cwe": "CWE-89",
+          "remediation": "Use parameterized database APIs instead of interpolating user input."
+        },
+        {
+          "finding_id": "finding_5e2c385561654122b2cccd18215fc75e",
+          "rule_id": "python.insecure_deserialization.pickle",
+          "title": "Pickle deserialization can execute attacker-controlled code",
+          "category": "DESERIALIZATION",
+          "severity": "CRITICAL",
+          "file_path": "app/users.py",
+          "line": 46,
+          "snippet": "config = pickle.loads(data)",
+          "confidence": 0.9,
+          "cwe": "CWE-502",
+          "remediation": "Replace pickle with a safe structured format such as JSON for untrusted data."
+        },
+        {
+          "finding_id": "finding_65acb6538a9b4adebb22b5c5db843fff",
+          "rule_id": "python.yaml_load",
+          "title": "YAML load uses an unsafe loader",
+          "category": "DESERIALIZATION",
+          "severity": "HIGH",
+          "file_path": "app/users.py",
+          "line": 54,
+          "snippet": "parsed = yaml.load(data, Loader=yaml.Loader)",
+          "confidence": 0.86,
+          "cwe": "CWE-20",
+          "remediation": "Use yaml.safe_load or yaml.load with SafeLoader."
+        },
+        {
+          "finding_id": "finding_8b8879edd75e45d6a3008010b77caa72",
+          "rule_id": "python.unsafe_execution",
+          "title": "Dynamic code execution",
+          "category": "UNSAFE_EXECUTION",
+          "severity": "HIGH",
+          "file_path": "app/users.py",
+          "line": 62,
+          "snippet": "result = eval(expression)",
+          "confidence": 0.82,
+          "cwe": "CWE-94",
+          "remediation": "Replace dynamic execution with explicit parsing or a constrained evaluator."
+        }
+      ],
+      "validation_commands": [
+        [
+          "python3",
+          "-m",
+          "unittest",
+          "discover",
+          "-s",
+          "tests"
+        ]
+      ]
+    },
+    "tasks": [
+      {
+        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+        "title": "Remediate CWE-89",
+        "objective": "SQL query uses f-string interpolation: Use parameterized database APIs instead of interpolating user input.",
+        "target_path": "app/users.py",
+        "priority": "HIGH",
+        "status": "ESCALATED",
+        "finding_ids": [
+          "finding_feaf4cbccac6474c9544c3fecd67ff36"
+        ],
+        "execution_profile": "SCRIPTED"
+      },
+      {
+        "task_id": "task_8cb1b8143ba5422682a3dbe7b4ac3eff",
+        "title": "Remediate CWE-502",
+        "objective": "Pickle deserialization can execute attacker-controlled code: Replace pickle with a safe structured format such as JSON for untrusted data.",
+        "target_path": "app/users.py",
+        "priority": "CRITICAL",
+        "status": "PENDING",
+        "finding_ids": [
+          "finding_5e2c385561654122b2cccd18215fc75e"
+        ],
+        "execution_profile": "SCRIPTED"
+      },
+      {
+        "task_id": "task_35e23eec66594cf8acb1da8f8695623d",
+        "title": "Remediate CWE-20",
+        "objective": "YAML load uses an unsafe loader: Use yaml.safe_load or yaml.load with SafeLoader.",
+        "target_path": "app/users.py",
+        "priority": "HIGH",
+        "status": "PENDING",
+        "finding_ids": [
+          "finding_65acb6538a9b4adebb22b5c5db843fff"
+        ],
+        "execution_profile": "SCRIPTED"
+      },
+      {
+        "task_id": "task_fe0ee01b3baa4c8182947a6db0c3aead",
+        "title": "Remediate CWE-94",
+        "objective": "Dynamic code execution: Replace dynamic execution with explicit parsing or a constrained evaluator.",
+        "target_path": "app/users.py",
+        "priority": "HIGH",
+        "status": "PENDING",
+        "finding_ids": [
+          "finding_8b8879edd75e45d6a3008010b77caa72"
+        ],
+        "execution_profile": "SCRIPTED"
+      }
+    ],
+    "messages": [
+      {
+        "mcp_version": "1.2",
+        "message_id": "msg_5cd8e982220743638a74d1b4fe883137",
+        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "task_id": "task_4f57a12b29464c1db9b068a03979c0bc",
+        "timestamp": "2026-05-27T16:51:55.501618Z",
+        "sender": "architect",
+        "recipient": "scout",
+        "message_type": "TASK_ASSIGNMENT",
+        "priority": "HIGH",
+        "payload": {
+          "target_path": "app/users.py",
+          "objective": "SQL query uses f-string interpolation: Use parameterized database APIs instead of interpolating user input.",
+          "execution_profile": "SCRIPTED",
+          "max_tokens_budget": 50000
+        },
+        "checksum": "bda121e0ac9978e1bf11d70cc2db2c6ac02fe304084ad5f158f9184c2887394f",
+        "computed_checksum": "bda121e0ac9978e1bf11d70cc2db2c6ac02fe304084ad5f158f9184c2887394f"
+      },
+      {
+        "mcp_version": "1.2",
+        "message_id": "msg_be280067457d4272bf5dfdf35b92f0a6",
+        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "task_id": "task_1d5e2d04422748908295c6974217b0da",
+        "timestamp": "2026-05-27T16:51:55.501677Z",
+        "sender": "architect",
+        "recipient": "scout",
+        "message_type": "TASK_ASSIGNMENT",
+        "priority": "CRITICAL",
+        "payload": {
+          "target_path": "app/users.py",
+          "objective": "Pickle deserialization can execute attacker-controlled code: Replace pickle with a safe structured format such as JSON for untrusted data.",
+          "execution_profile": "SCRIPTED",
+          "max_tokens_budget": 50000
+        },
+        "checksum": "bb8136cb8cf8eedf867cecfaa6ab3eee06fbfcbc2c583b65b1fe00f1eb4e4020",
+        "computed_checksum": "bb8136cb8cf8eedf867cecfaa6ab3eee06fbfcbc2c583b65b1fe00f1eb4e4020"
+      },
+      {
+        "mcp_version": "1.2",
+        "message_id": "msg_ebe74cde2c7a4106bb99687b476f1501",
+        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "task_id": "task_8573fd2419b44c358cd1958b8588af46",
+        "timestamp": "2026-05-27T16:51:55.501717Z",
+        "sender": "architect",
+        "recipient": "scout",
+        "message_type": "TASK_ASSIGNMENT",
+        "priority": "HIGH",
+        "payload": {
+          "target_path": "app/users.py",
+          "objective": "YAML load uses an unsafe loader: Use yaml.safe_load or yaml.load with SafeLoader.",
+          "execution_profile": "SCRIPTED",
+          "max_tokens_budget": 50000
+        },
+        "checksum": "b742da83634fe20a5457ffbe63e142ec9a56c148dd4a64e7161097e0238b3fff",
+        "computed_checksum": "b742da83634fe20a5457ffbe63e142ec9a56c148dd4a64e7161097e0238b3fff"
+      },
+      {
+        "mcp_version": "1.2",
+        "message_id": "msg_9d333c464a9e4d29abaa63f81aac236b",
+        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "task_id": "task_f2058472fab74c36afbaa2fc722d8fb7",
+        "timestamp": "2026-05-27T16:51:55.501745Z",
+        "sender": "architect",
+        "recipient": "scout",
+        "message_type": "TASK_ASSIGNMENT",
+        "priority": "HIGH",
+        "payload": {
+          "target_path": "app/users.py",
+          "objective": "Dynamic code execution: Replace dynamic execution with explicit parsing or a constrained evaluator.",
+          "execution_profile": "SCRIPTED",
+          "max_tokens_budget": 50000
+        },
+        "checksum": "fd10873c0a4e39a32b9620ca2c8619601438d98362c20727dd885c9073cdde8e",
+        "computed_checksum": "fd10873c0a4e39a32b9620ca2c8619601438d98362c20727dd885c9073cdde8e"
+      }
+    ],
+    "patches": [],
+    "validations": [],
+    "delta_history": [],
+    "events": [
+      {
+        "event_id": "evt_04c8057043e1493eba3ba02599183b3e",
+        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "event_type": "AUDIT_LOG",
+        "timestamp": "2026-05-27T16:51:55.495975Z",
+        "agent": "router",
+        "task_id": null,
+        "payload": {
+          "message": "Session accepted",
+          "repo_path": "/Users/akshatagrawal/Desktop/Agent Swarms/examples/python-vulnerable-api",
+          "objective": "Audit for demo"
+        }
+      },
+      {
+        "event_id": "evt_4e1c0fbd3a44401482808acf5bbba6fa",
+        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "event_type": "ARCHITECT_UPDATE",
+        "timestamp": "2026-05-27T16:51:55.501566Z",
+        "agent": "architect",
+        "task_id": null,
+        "payload": {
+          "status": "repository_ingested",
+          "files_indexed": 4,
+          "symbols": 14,
+          "graph_edges": 0,
+          "findings": 4,
+          "validation_commands": [
+            [
+              "python3",
+              "-m",
+              "unittest",
+              "discover",
+              "-s",
+              "tests"
+            ]
+          ]
+        }
+      },
+      {
+        "event_id": "evt_3c5da763291e48638e49d674bfb6101d",
+        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "event_type": "BUDGET_UPDATE",
+        "timestamp": "2026-05-27T16:51:55.501783Z",
+        "agent": "router",
+        "task_id": null,
+        "payload": {
+          "tokens_consumed": 826,
+          "tokens_remaining": 1999174,
+          "token_budget": 2000000,
+          "estimated_cost_usd": 0.0012
+        }
+      },
+      {
+        "event_id": "evt_be5e4d1ad1204d2ca69ac87ef56bb7dc",
+        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "event_type": "AUDIT_LOG",
+        "timestamp": "2026-05-27T16:51:55.502431Z",
+        "agent": "router",
+        "task_id": null,
+        "payload": {
+          "message": "Graph state machine executed",
+          "engine": "sequential-compatible-graph",
+          "trace": [
+            {
+              "agent": "architect",
+              "action": "planned_tasks",
+              "payload": {
+                "task_count": 4
+              }
+            },
+            {
+              "agent": "scout",
+              "action": "retrieved_evidence",
+              "payload": {
+                "finding": "python.sql_injection.fstring",
+                "chunks": 2
+              }
+            },
+            {
+              "agent": "engineer",
+              "action": "patch_generation_failed",
+              "payload": {
+                "error": "PatchGenerationError",
+                "message": "No deterministic or configured LLM patch available for python.sql_injection.fstring"
+              }
+            },
+            {
+              "agent": "router",
+              "action": "terminal_completion",
+              "payload": {
+                "engine": "sequential-compatible-graph"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "event_id": "evt_13a92f790ada40d881bd5c987532e7c2",
+        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "event_type": "ARCHITECT_UPDATE",
+        "timestamp": "2026-05-27T16:51:55.502453Z",
+        "agent": "architect",
+        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+        "payload": {
+          "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+          "target_path": "app/users.py",
+          "status": "ACTIVE",
+          "priority": "HIGH",
+          "graph_engine": "sequential-compatible-graph"
+        }
+      },
+      {
+        "event_id": "evt_703f22557fc6499d81c11d7b8ae2386f",
+        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "event_type": "SCOUT_RETRIEVAL",
+        "timestamp": "2026-05-27T16:51:55.502523Z",
+        "agent": "scout",
+        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+        "payload": {
+          "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+          "finding": {
+            "finding_id": "finding_feaf4cbccac6474c9544c3fecd67ff36",
+            "rule_id": "python.sql_injection.fstring",
+            "title": "SQL query uses f-string interpolation",
+            "category": "INJECTION",
+            "severity": "HIGH",
+            "file_path": "app/users.py",
+            "line": 31,
+            "snippet": "query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"",
+            "confidence": 0.92,
+            "cwe": "CWE-89",
+            "remediation": "Use parameterized database APIs instead of interpolating user input."
+          },
+          "related_chunks": [
+            {
+              "chunk_id": "chunk_5b287a8909f90724",
+              "file_path": "app/users.py",
+              "start_line": 1,
+              "end_line": 71,
+              "text": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)",
+              "token_fingerprint": "a103b27a5eaf278b1ce7215e027e9e270316d7399a61cdd898b80f9a986f6ae7"
+            },
+            {
+              "chunk_id": "chunk_4e5ad92b6633f231",
+              "file_path": "tests/test_users.py",
+              "start_line": 1,
+              "end_line": 31,
+              "text": "from __future__ import annotations\n\nimport unittest\nfrom app.users import search_users, get_db_credentials, generate_reset_token, app\n\nclass VulnerableAppTests(unittest.TestCase):\n    def setUp(self):\n        self.client = app.test_client()\n\n    def test_search_by_name(self) -> None:\n        response = self.client.get(\"/search?name=Ada\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"results\"], [[1, \"Ada\"]])\n\n    def test_search_without_match(self) -> None:\n        response = self.client.get(\"/search?name=Katherine\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"results\"], [])\n        \n    def test_credentials(self) -> None:\n        aws, pwd = get_db_credentials()\n        self.assertTrue(len(aws) > 0)\n        self.assertTrue(len(pwd) > 0)\n        \n    def test_math(self) -> None:\n        response = self.client.get(\"/math?expr=5*5\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"result\"], 25)\n\nif __name__ == \"__main__\":\n    unittest.main()",
+              "token_fingerprint": "6c22a2c5016dcd12135be0d6f4b25096c3b330c1318d0ef7363bc92f87d64d89"
+            }
+          ],
+          "related_symbols": [
+            {
+              "symbol_id": "sym_8ffe8e1db34997f0",
+              "name": "get_db_credentials",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 13,
+              "end_line": 16
+            },
+            {
+              "symbol_id": "sym_95cbff255653e9c8",
+              "name": "initialize_database",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 19,
+              "end_line": 23
+            },
+            {
+              "symbol_id": "sym_fc79750717950c5a",
+              "name": "search_users",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 29,
+              "end_line": 33
+            },
+            {
+              "symbol_id": "sym_cca2eb049bdbb92e",
+              "name": "download_file",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 37,
+              "end_line": 39
+            },
+            {
+              "symbol_id": "sym_226501e504960c2c",
+              "name": "load_config",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 43,
+              "end_line": 47
+            },
+            {
+              "symbol_id": "sym_c8681537d25fa309",
+              "name": "parse_yaml",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 51,
+              "end_line": 55
+            },
+            {
+              "symbol_id": "sym_2ae2473059a488bd",
+              "name": "calculate",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 59,
+              "end_line": 63
+            },
+            {
+              "symbol_id": "sym_39e6367c63f29a0c",
+              "name": "generate_reset_token",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 66,
+              "end_line": 68
+            }
+          ],
+          "graph_neighbors": [],
+          "static_scan_count": 4
+        }
+      },
+      {
+        "event_id": "evt_7a347598742742eabe8f629ec1de0bd9",
+        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "event_type": "ESCALATION",
+        "timestamp": "2026-05-27T16:51:55.502559Z",
+        "agent": "router",
+        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+        "payload": {
+          "escalation_id": "esc_31269f27fa6541d5aa82a3f4478f7057",
+          "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+          "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+          "iteration_count": 1,
+          "logical_delta_history": [],
+          "deadlock_type": "CONVERGED_BELOW_THRESHOLD",
+          "last_failing_test": null,
+          "last_stack_trace": null,
+          "last_critic_directive": "Patch generation failed: No deterministic or configured LLM patch available for python.sql_injection.fstring",
+          "last_engineer_diff": "",
+          "suggested_hint": "Check LLM provider configuration or add a deterministic remediation rule.",
+          "tokens_consumed": 0,
+          "tokens_remaining": 2000000
+        }
+      }
+    ],
+    "diagnosis": {
+      "escalation_id": "esc_31269f27fa6541d5aa82a3f4478f7057",
+      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+      "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+      "iteration_count": 1,
+      "logical_delta_history": [],
+      "deadlock_type": "CONVERGED_BELOW_THRESHOLD",
+      "last_failing_test": null,
+      "last_stack_trace": null,
+      "last_critic_directive": "Patch generation failed: No deterministic or configured LLM patch available for python.sql_injection.fstring",
+      "last_engineer_diff": "",
+      "suggested_hint": "Check LLM provider configuration or add a deterministic remediation rule.",
+      "tokens_consumed": 0,
+      "tokens_remaining": 2000000
+    },
+    "rollback": null,
+    "approved_patch_id": null
+  },
+  "events": [
+    {
+      "event_id": "evt_4e1c0fbd3a44401482808acf5bbba6fa",
+      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+      "event_type": "ARCHITECT_UPDATE",
+      "timestamp": "2026-05-27T16:51:55.501566Z",
+      "agent": "architect",
+      "task_id": null,
+      "payload": {
+        "status": "repository_ingested",
+        "files_indexed": 4,
+        "symbols": 14,
+        "graph_edges": 0,
+        "findings": 4,
+        "validation_commands": [
+          [
+            "python3",
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "tests"
+          ]
+        ]
+      }
+    },
+    {
+      "event_id": "evt_3c5da763291e48638e49d674bfb6101d",
+      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+      "event_type": "BUDGET_UPDATE",
+      "timestamp": "2026-05-27T16:51:55.501783Z",
+      "agent": "router",
+      "task_id": null,
+      "payload": {
+        "tokens_consumed": 826,
+        "tokens_remaining": 1999174,
+        "token_budget": 2000000,
+        "estimated_cost_usd": 0.0012
+      }
+    },
+    {
+      "event_id": "evt_be5e4d1ad1204d2ca69ac87ef56bb7dc",
+      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+      "event_type": "AUDIT_LOG",
+      "timestamp": "2026-05-27T16:51:55.502431Z",
+      "agent": "router",
+      "task_id": null,
+      "payload": {
+        "message": "Graph state machine executed",
+        "engine": "sequential-compatible-graph",
+        "trace": [
+          {
+            "agent": "architect",
+            "action": "planned_tasks",
+            "payload": {
+              "task_count": 4
+            }
+          },
+          {
+            "agent": "scout",
+            "action": "retrieved_evidence",
+            "payload": {
+              "finding": "python.sql_injection.fstring",
+              "chunks": 2
+            }
+          },
+          {
+            "agent": "engineer",
+            "action": "patch_generation_failed",
+            "payload": {
+              "error": "PatchGenerationError",
+              "message": "No deterministic or configured LLM patch available for python.sql_injection.fstring"
+            }
+          },
+          {
+            "agent": "router",
+            "action": "terminal_completion",
+            "payload": {
+              "engine": "sequential-compatible-graph"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "evt_13a92f790ada40d881bd5c987532e7c2",
+      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+      "event_type": "ARCHITECT_UPDATE",
+      "timestamp": "2026-05-27T16:51:55.502453Z",
+      "agent": "architect",
+      "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+      "payload": {
+        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+        "target_path": "app/users.py",
+        "status": "ACTIVE",
+        "priority": "HIGH",
+        "graph_engine": "sequential-compatible-graph"
+      }
+    },
+    {
+      "event_id": "evt_703f22557fc6499d81c11d7b8ae2386f",
+      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+      "event_type": "SCOUT_RETRIEVAL",
+      "timestamp": "2026-05-27T16:51:55.502523Z",
+      "agent": "scout",
+      "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+      "payload": {
+        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+        "finding": {
+          "finding_id": "finding_feaf4cbccac6474c9544c3fecd67ff36",
+          "rule_id": "python.sql_injection.fstring",
+          "title": "SQL query uses f-string interpolation",
+          "category": "INJECTION",
+          "severity": "HIGH",
+          "file_path": "app/users.py",
+          "line": 31,
+          "snippet": "query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"",
+          "confidence": 0.92,
+          "cwe": "CWE-89",
+          "remediation": "Use parameterized database APIs instead of interpolating user input."
+        },
+        "related_chunks": [
+          {
+            "chunk_id": "chunk_5b287a8909f90724",
+            "file_path": "app/users.py",
+            "start_line": 1,
+            "end_line": 71,
+            "text": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)",
+            "token_fingerprint": "a103b27a5eaf278b1ce7215e027e9e270316d7399a61cdd898b80f9a986f6ae7"
+          },
+          {
+            "chunk_id": "chunk_4e5ad92b6633f231",
+            "file_path": "tests/test_users.py",
+            "start_line": 1,
+            "end_line": 31,
+            "text": "from __future__ import annotations\n\nimport unittest\nfrom app.users import search_users, get_db_credentials, generate_reset_token, app\n\nclass VulnerableAppTests(unittest.TestCase):\n    def setUp(self):\n        self.client = app.test_client()\n\n    def test_search_by_name(self) -> None:\n        response = self.client.get(\"/search?name=Ada\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"results\"], [[1, \"Ada\"]])\n\n    def test_search_without_match(self) -> None:\n        response = self.client.get(\"/search?name=Katherine\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"results\"], [])\n        \n    def test_credentials(self) -> None:\n        aws, pwd = get_db_credentials()\n        self.assertTrue(len(aws) > 0)\n        self.assertTrue(len(pwd) > 0)\n        \n    def test_math(self) -> None:\n        response = self.client.get(\"/math?expr=5*5\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"result\"], 25)\n\nif __name__ == \"__main__\":\n    unittest.main()",
+            "token_fingerprint": "6c22a2c5016dcd12135be0d6f4b25096c3b330c1318d0ef7363bc92f87d64d89"
+          }
+        ],
+        "related_symbols": [
+          {
+            "symbol_id": "sym_8ffe8e1db34997f0",
+            "name": "get_db_credentials",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 13,
+            "end_line": 16
+          },
+          {
+            "symbol_id": "sym_95cbff255653e9c8",
+            "name": "initialize_database",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 19,
+            "end_line": 23
+          },
+          {
+            "symbol_id": "sym_fc79750717950c5a",
+            "name": "search_users",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 29,
+            "end_line": 33
+          },
+          {
+            "symbol_id": "sym_cca2eb049bdbb92e",
+            "name": "download_file",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 37,
+            "end_line": 39
+          },
+          {
+            "symbol_id": "sym_226501e504960c2c",
+            "name": "load_config",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 43,
+            "end_line": 47
+          },
+          {
+            "symbol_id": "sym_c8681537d25fa309",
+            "name": "parse_yaml",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 51,
+            "end_line": 55
+          },
+          {
+            "symbol_id": "sym_2ae2473059a488bd",
+            "name": "calculate",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 59,
+            "end_line": 63
+          },
+          {
+            "symbol_id": "sym_39e6367c63f29a0c",
+            "name": "generate_reset_token",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 66,
+            "end_line": 68
+          }
+        ],
+        "graph_neighbors": [],
+        "static_scan_count": 4
+      }
+    },
+    {
+      "event_id": "evt_7a347598742742eabe8f629ec1de0bd9",
+      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+      "event_type": "ESCALATION",
+      "timestamp": "2026-05-27T16:51:55.502559Z",
+      "agent": "router",
+      "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+      "payload": {
+        "escalation_id": "esc_31269f27fa6541d5aa82a3f4478f7057",
+        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+        "iteration_count": 1,
+        "logical_delta_history": [],
+        "deadlock_type": "CONVERGED_BELOW_THRESHOLD",
+        "last_failing_test": null,
+        "last_stack_trace": null,
+        "last_critic_directive": "Patch generation failed: No deterministic or configured LLM patch available for python.sql_injection.fstring",
+        "last_engineer_diff": "",
+        "suggested_hint": "Check LLM provider configuration or add a deterministic remediation rule.",
+        "tokens_consumed": 0,
+        "tokens_remaining": 2000000
+      }
+    }
+  ]
+}

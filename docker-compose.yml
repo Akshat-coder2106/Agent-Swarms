@@ -1,0 +1,33 @@
+services:
+  sentinel-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    environment:
+      SENTINEL_ENV: development
+      SENTINEL_ALLOWED_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      SENTINEL_ALLOWED_REPO_ROOTS: /app
+      SENTINEL_AUTH_SECRET: change-me-for-local-demo
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./examples:/app/examples:ro
+
+  sentinel-frontend:
+    image: node:22-alpine
+    working_dir: /app/frontend
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
+    environment:
+      VITE_SENTINEL_API_URL: http://127.0.0.1:8000
+      VITE_DEFAULT_REPO_PATH: ./examples/python-vulnerable-api
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - sentinel_frontend_node_modules:/app/frontend/node_modules
+    depends_on:
+      - sentinel-api
+
+volumes:
+  sentinel_frontend_node_modules:

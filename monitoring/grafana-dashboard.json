@@ -1,0 +1,199 @@
+{
+  "dashboard": {
+    "title": "Project Sentinel Dashboard",
+    "uid": "sentinel-dashboard",
+    "tags": ["sentinel", "security", "audit"],
+    "timezone": "browser",
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Active Sessions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sentinel_audit_sessions_active",
+            "legendFormat": "Active Sessions"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 10},
+                {"color": "red", "value": 20}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Total Sessions",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(sentinel_audit_sessions_total)",
+            "legendFormat": "Total Sessions"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Findings by Severity",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (finding_severity) (sentinel_audit_findings_total)",
+            "legendFormat": "{{finding_severity}}"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Findings by Category",
+        "type": "barchart",
+        "targets": [
+          {
+            "expr": "sum by (finding_category) (sentinel_audit_findings_total)",
+            "legendFormat": "{{finding_category}}"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Agent Task Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(sentinel_audit_agent_task_duration_seconds_sum[5m]) / rate(sentinel_audit_agent_task_duration_seconds_count[5m])",
+            "legendFormat": "{{agent_type}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Agent Tasks Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(sentinel_audit_agent_tasks_total[5m])",
+            "legendFormat": "{{agent_type}} - {{status}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Tasks/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Patches Proposed vs Approved",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(sentinel_audit_patches_proposed_total[5m])",
+            "legendFormat": "Proposed"
+          },
+          {
+            "expr": "rate(sentinel_audit_patches_approved_total[5m])",
+            "legendFormat": "Approved"
+          },
+          {
+            "expr": "rate(sentinel_audit_patches_rejected_total[5m])",
+            "legendFormat": "Rejected"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Patches/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Sandbox Execution Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(sentinel_audit_sandbox_execution_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile - {{sandbox_type}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(sentinel_audit_sandbox_execution_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile - {{sandbox_type}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Tokens Consumed",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(sentinel_audit_tokens_consumed_total[5m])",
+            "legendFormat": "{{agent_type}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Tokens/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(sentinel_audit_errors_total[5m])",
+            "legendFormat": "{{error_type}} - {{agent_type}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Errors/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Memory Indexing",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "sentinel_audit_memory_chunks_indexed",
+            "legendFormat": "Chunks - {{session_id}}"
+          },
+          {
+            "expr": "sentinel_audit_memory_symbols_indexed",
+            "legendFormat": "Symbols - {{session_id}}"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "HTTP Request Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(sentinel_api_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile - {{method}} {{endpoint}}"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      }
+    ]
+  }
+}

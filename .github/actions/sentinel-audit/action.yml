@@ -1,0 +1,105 @@
+name: 'Sentinel Audit Action'
+description: 'Run Project Sentinel security audit on your repository'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  repo-path:
+    description: 'Path to the repository to audit'
+    required: false
+    default: '.'
+  api-url:
+    description: 'Sentinel API URL'
+    required: false
+    default: 'http://localhost:8000'
+  api-token:
+    description: 'Sentinel API token'
+    required: true
+  fail-on-findings:
+    description: 'Fail the action if findings are detected'
+    required: false
+    default: 'true'
+  annotate-pr:
+    description: 'Annotate the PR with findings'
+    required: false
+    default: 'true'
+
+outputs:
+  findings-count:
+    description: 'Number of findings detected'
+  findings-json:
+    description: 'JSON output of findings'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run Sentinel Audit
+      shell: bash
+      env:
+        REPO_PATH: ${{ inputs.repo-path }}
+        API_URL: ${{ inputs.api-url }}
+        API_TOKEN: ${{ inputs.api-token }}
+        FAIL_ON_FINDINGS: ${{ inputs.fail-on-findings }}
+        ANNOTATE_PR: ${{ inputs.annotate-pr }}
+      run: |
+        # Install dependencies
+        pip install httpx
+        
+        # Run audit
+        python3 << 'EOF'
+        import httpx
+        import json
+        import os
+        import sys
+        
+        repo_path = os.getenv('REPO_PATH', '.')
+        api_url = os.getenv('API_URL', 'http://localhost:8000')
+        api_token = os.getenv('API_TOKEN')
+        fail_on_findings = os.getenv('FAIL_ON_FINDINGS', 'true').lower() == 'true'
+        annotate_pr = os.getenv('ANNOTATE_PR', 'true').lower() == 'true'
+        
+        # Start audit session
+        client = httpx.Client(base_url=api_url, headers={'Authorization': f'Bearer {api_token}'})
+        
+        try:
+            response = client.post('/api/sessions', json={'repo_path': repo_path})
+            response.raise_for_status()
+            session_data = response.json()
+            session_id = session_data['session_id']
+            
+            print(f"Started audit session: {session_id}")
+            
+            # Wait for completion (simplified)
+            import time
+            time.sleep(10)
+            
+            # Get findings
+            response = client.get(f'/api/sessions/{session_id}/findings')
+            response.raise_for_status()
+            findings = response.json()
+            
+            findings_count = len(findings)
+            print(f"Found {findings_count} findings")
+            
+            # Set outputs
+            with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                f.write(f'findings-count={findings_count}\n')
+                f.write(f'findings-json={json.dumps(findings)}\n')
+            
+            # Annotate PR if enabled
+            if annotate_pr and findings:
+                for finding in findings[:10]:  # Limit to 10 annotations
+                    annotation = f"::error file={finding['file_path']},line={finding['line']}::{finding['title']}: {finding['snippet']}"
+                    print(annotation)
+            
+            # Fail if findings detected and enabled
+            if fail_on_findings and findings_count > 0:
+                sys.exit(1)
+                
+        except Exception as e:
+            print(f"Error: {e}")
+            sys.exit(1)
+        finally:
+            client.close()
+        EOF

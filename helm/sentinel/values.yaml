@@ -1,0 +1,118 @@
+# Default values for Project Sentinel
+
+replicaCount:
+  architect: 2
+  scout: 3
+  engineer: 3
+  critic: 3
+
+image:
+  repository: sentinel
+  tag: "latest"
+  pullPolicy: Always
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: "sentinel-sa"
+
+podAnnotations: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+resources:
+  architect:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  scout:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  engineer:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+  critic:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+
+autoscaling:
+  architect:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+  scout:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 15
+  engineer:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+  critic:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+config:
+  env: "production"
+  allowedOrigins: "https://sentinel.yourdomain.com"
+  trustedHosts: "sentinel.yourdomain.com,*.yourdomain.com"
+  authIssuer: "project-sentinel"
+  tokenTTLSeconds: 3600
+  maxFileBytes: 262144
+  sandboxTimeoutSeconds: 30
+  tokenBudget: 2000000
+
+externalServices:
+  qdrant:
+    host: "qdrant"
+    port: 6333
+  neo4j:
+    uri: "bolt://neo4j:7687"
+    username: "neo4j"
+    password: "password"
+  kafka:
+    bootstrapServers: "kafka:9092"
+  temporal:
+    serverUrl: "temporal:7233"
+  argo:
+    serverUrl: "http://argo-workflows:2746"
+
+secrets:
+  anthropicApiKey: ""
+  googleApiKey: ""
+  jwtSecret: ""
+  neo4jPassword: ""

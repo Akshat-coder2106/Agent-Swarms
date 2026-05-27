@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sentinel
+  labels:
+    name: sentinel
+    app: project-sentinel

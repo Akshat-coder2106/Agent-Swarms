@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentinel-config
+  namespace: sentinel
+data:
+  SENTINEL_ENV: "production"
+  SENTINEL_ALLOWED_ORIGINS: "https://sentinel.yourdomain.com"
+  SENTINEL_TRUSTED_HOSTS: "sentinel.yourdomain.com,*.yourdomain.com"
+  SENTINEL_AUTH_ISSUER: "project-sentinel"
+  SENTINEL_TOKEN_TTL_SECONDS: "3600"
+  SENTINEL_MAX_FILE_BYTES: "262144"
+  SENTINEL_SANDBOX_TIMEOUT_SECONDS: "30"
+  SENTINEL_TOKEN_BUDGET: "2000000"

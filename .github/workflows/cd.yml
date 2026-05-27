@@ -1,0 +1,87 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.29.0'
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name sentinel-cluster --region us-east-1
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install sentinel ./helm/sentinel \
+            --namespace sentinel \
+            --create-namespace \
+            --set image.tag=${{ github.sha }} \
+            --set secrets.anthropicApiKey=${{ secrets.ANTHROPIC_API_KEY }} \
+            --set secrets.googleApiKey=${{ secrets.GOOGLE_API_KEY }} \
+            --set secrets.jwtSecret=${{ secrets.JWT_SECRET }} \
+            --set secrets.neo4jPassword=${{ secrets.NEO4J_PASSWORD }} \
+            --wait
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/sentinel-api -n sentinel
+          kubectl rollout status deployment/sentinel-architect -n sentinel
+          kubectl rollout status deployment/sentinel-scout -n sentinel
+          kubectl rollout status deployment/sentinel-engineer -n sentinel
+          kubectl rollout status deployment/sentinel-critic -n sentinel
+
+  rollback:
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: deploy
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.29.0'
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name sentinel-cluster --region us-east-1
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Rollback deployment
+        run: |
+          helm rollback sentinel -n sentinel

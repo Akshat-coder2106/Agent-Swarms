@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: sentinel-api
+    env: docker
+    dockerfilePath: docker/Dockerfile.api
+    region: oregon
+    plan: free
+    branch: main
+    healthCheckPath: /api/system/capabilities
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: SENTINEL_JWT_SECRET
+        generateValue: true
+      - key: ALLOWED_CORS_ORIGINS
+        value: "https://project-sentinel-frontend.vercel.app"
+      - key: ENABLE_LANGGRAPH
+        value: "true"

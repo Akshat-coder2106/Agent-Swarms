@@ -1,0 +1,15 @@
+apiVersion: v2
+name: sentinel
+description: Project Sentinel - Autonomous codebase auditing and remediation swarm
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - security
+  - auditing
+  - remediation
+  - ai
+  - agents
+maintainers:
+  - name: Project Sentinel Team
+    email: team@sentinel.example.com

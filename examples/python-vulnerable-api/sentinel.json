@@ -1,0 +1,4 @@
+{
+  "setup_commands": [["pip", "install", "flask", "pyyaml"]],
+  "validation_commands": [["python3", "-m", "unittest", "discover", "-s", "tests"]]
+}

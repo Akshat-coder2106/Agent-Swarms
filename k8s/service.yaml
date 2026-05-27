@@ -1,0 +1,93 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentinel-api
+  namespace: sentinel
+  labels:
+    app: sentinel
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: sentinel
+    component: api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentinel-architect
+  namespace: sentinel
+  labels:
+    app: sentinel
+    component: architect
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: sentinel
+    component: architect
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentinel-scout
+  namespace: sentinel
+  labels:
+    app: sentinel
+    component: scout
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: sentinel
+    component: scout
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentinel-engineer
+  namespace: sentinel
+  labels:
+    app: sentinel
+    component: engineer
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: sentinel
+    component: engineer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentinel-critic
+  namespace: sentinel
+  labels:
+    app: sentinel
+    component: critic
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: sentinel
+    component: critic
