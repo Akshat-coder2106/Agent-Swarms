@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import load_settings
+from .github_integration import GitHubIntegrationError, create_github_pr
 from .models import (
     ApprovalRequest,
     AuditRequest,
@@ -24,9 +25,8 @@ from .models import (
     RollbackRequest,
     SystemCapabilities,
 )
-from .github_integration import create_github_pr, GitHubIntegrationError
-from .report_generator import generate_markdown_report
 from .orchestrator import ApprovalError, SentinelOrchestrator, SessionNotFoundError
+from .report_generator import generate_markdown_report
 from .security import AuthenticationError, Principal, bearer_from_header, issue_token, verify_token
 
 settings = load_settings()
@@ -374,8 +374,6 @@ async def get_metrics_summary(_principal: Annotated[Principal, Depends(require_a
     mttr = 12.5 # minutes average
     
     # Sandbox pass rate
-    total_validations = sum(len(p.files) for s in sessions for p in s.patches) # rough proxy
-    passes = sum(1 for s in sessions for p in s.patches if getattr(p, 'risk', None) == Priority.LOW) # heuristic
     pass_rate = 0.84 # realistic heuristic for demo
 
     return {

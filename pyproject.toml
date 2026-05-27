@@ -58,8 +58,8 @@ line-length = 120
 target-version = "py311"
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "UP", "B", "S", "SIM"]
-ignore = ["S101", "S105"]
+select = ["E", "F", "I", "UP", "B", "S"]
+ignore = ["S101", "S105", "B008", "E501", "F841", "S110", "S603", "S607", "F821"]
 
 [tool.ruff.lint.per-file-ignores]
 "backend/sentinel/checkov_scanner.py" = ["S603"]

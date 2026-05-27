@@ -219,7 +219,8 @@ node {source_file.name}
 
         try:
             # We import wasmtime Store, Module, Linker, and WasiConfig here
-            from wasmtime import Engine, Linker, Module as WasmtimeModule, Store, WasiConfig
+            from wasmtime import Engine, Linker, Store, WasiConfig
+            from wasmtime import Module as WasmtimeModule
             
             engine = Engine()
             linker = Linker(engine)

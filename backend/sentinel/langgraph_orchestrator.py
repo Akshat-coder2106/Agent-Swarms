@@ -21,6 +21,8 @@ except ImportError:  # pragma: no cover - local default path.
 from .models import (
     AgentRole,
     AgentTask,
+    AuditEvent,
+    EventType,
     EvidencePackage,
     PatchProposal,
     RepositoryMemory,

@@ -104,13 +104,13 @@ def resolve_repo_path(settings: Settings, requested_path: str) -> Path:
         tmp_dir = Path(tempfile.mkdtemp(prefix="sentinel-repo-"))
         try:
             subprocess.run(
-                ["git", "clone", "--depth", "1", requested_path, str(tmp_dir)],
+                ["git", "clone", "--depth", "1", requested_path, str(tmp_dir)],  # noqa: S603, S607
                 check=True,
                 capture_output=True,
                 text=True,
             )
         except subprocess.CalledProcessError as e:
-            raise RepositoryAccessError(f"Failed to clone repository: {e.stderr}")
+            raise RepositoryAccessError(f"Failed to clone repository: {e.stderr}") from e
         return tmp_dir
 
     repo_path = Path(requested_path).expanduser().resolve()
@@ -478,6 +478,7 @@ class RepositoryIngestor:
 
         try:
             import asyncio
+
             from .neo4j_memory import Neo4jConfig, Neo4jGraphIndex
             async def index_graph():
                 graph_idx = Neo4jGraphIndex(Neo4jConfig())

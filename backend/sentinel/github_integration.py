@@ -1,9 +1,10 @@
 import asyncio
-import os
-import httpx
 import urllib.parse
-from pathlib import Path
+
+import httpx
+
 from .models import AuditSession, PatchProposal
+
 
 class GitHubIntegrationError(Exception):
     pass
@@ -48,9 +49,11 @@ async def create_github_pr(session: AuditSession, patch: PatchProposal, github_t
         await asyncio.sleep(2)
 
         # 3. Get default branch ref
-        ref_resp = await client.get(f"https://api.github.com/repos/{username}/{repo}/git/refs/heads/main", headers=headers)
+        ref_url_main = f"https://api.github.com/repos/{username}/{repo}/git/refs/heads/main"
+        ref_resp = await client.get(ref_url_main, headers=headers)
         if ref_resp.status_code != 200:
-            ref_resp = await client.get(f"https://api.github.com/repos/{username}/{repo}/git/refs/heads/master", headers=headers)
+            ref_url_master = f"https://api.github.com/repos/{username}/{repo}/git/refs/heads/master"
+            ref_resp = await client.get(ref_url_master, headers=headers)
         if ref_resp.status_code != 200:
             raise GitHubIntegrationError("Could not find default branch (main/master).")
         
@@ -100,7 +103,7 @@ async def create_github_pr(session: AuditSession, patch: PatchProposal, github_t
         new_commit_sha = commit_resp.json()["sha"]
 
         # 7. Update Ref
-        update_ref_resp = await client.patch(
+        await client.patch(
             f"https://api.github.com/repos/{username}/{repo}/git/refs/heads/{branch_name}",
             headers=headers,
             json={"sha": new_commit_sha}

@@ -1,9 +1,11 @@
-from .models import AuditSession, FindingCategory
 import datetime
+
+from .models import AuditSession, FindingCategory
+
 
 def generate_markdown_report(session: AuditSession) -> str:
     lines = []
-    lines.append(f"# Project Sentinel - Compliance & Remediation Report")
+    lines.append("# Project Sentinel - Compliance & Remediation Report")
     lines.append(f"**Session ID:** `{session.session_id}`")
     lines.append(f"**Repository:** `{session.repo_path}`")
     lines.append(f"**Generated:** {datetime.datetime.now(datetime.UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}")

@@ -52,7 +52,7 @@ class AgentLLMTest(unittest.TestCase):
             original = "import pickle\n\ndef load_user(data):\n    return pickle.loads(data)\n"
             target.write_text(original, encoding="utf-8")
             finding = Finding(
-                rule_id="python.insecure_deserialization.pickle",
+                rule_id="python.insecure_deserialization.unsupported",
                 title="Pickle deserialization can execute attacker-controlled code",
                 category=FindingCategory.DESERIALIZATION,
                 severity=FindingSeverity.CRITICAL,

@@ -112,7 +112,7 @@ def bearer_from_header(value: str | None) -> str:
 
 def sign_request(settings: Settings, method: str, path: str, body: bytes) -> str:
     """Generate a secure cryptographic signature to verify payload integrity."""
-    signing_input = f"{method.upper()}:{path}:".encode("utf-8") + body
+    signing_input = f"{method.upper()}:{path}:".encode() + body
     return hmac.new(
         settings.auth_secret.encode("utf-8"),
         signing_input,
