@@ -33,7 +33,7 @@ class FakeLLMProvider:
             text = (
                 '{"patched_file":"import json\\n\\ndef load_user(data):\\n    return json.loads(data)\\n",'
                 '"rationale":"Replace pickle with JSON for untrusted payloads.",'
-                '"confidence":0.81,'
+                '"confidence":0.89,'
                 '"risk_level":"LOW",'
                 '"reasoning":"The diff replaces unsafe deserialization with JSON parsing.",'
                 '"required_followup":"Confirm callers pass JSON strings."}'

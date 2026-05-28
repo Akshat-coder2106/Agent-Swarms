@@ -6,12 +6,12 @@ Maintains a pool of pre-booted MicroVMs to reduce startup latency.
 import queue
 import threading
 import uuid
-from typing import Optional
 
-from .vm_manager import VMManager, VMConfig
+from .vm_manager import VMConfig, VMManager
+
 
 class PoolManager:
-    def __init__(self, pool_size: int = 3, config: Optional[VMConfig] = None):
+    def __init__(self, pool_size: int = 3, config: VMConfig | None = None):
         self.pool_size = pool_size
         self.config = config or VMConfig()
         self.pool: queue.Queue[VMManager] = queue.Queue(maxsize=pool_size)

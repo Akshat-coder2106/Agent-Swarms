@@ -4,7 +4,6 @@ JWT Manager for Authentication.
 Handles token creation, validation, expiration, and claims.
 """
 import time
-from typing import Any, Optional
 
 import jwt
 from pydantic import BaseModel
@@ -28,7 +27,7 @@ class JWTManager:
         payload = {"sub": subject, "role": role, "exp": expiration}
         return jwt.encode(payload, self.secret, algorithm=self.algorithm)
 
-    def verify_token(self, token: str) -> Optional[TokenPayload]:
+    def verify_token(self, token: str) -> TokenPayload | None:
         """Verify a JWT token and return its payload. Returns None if invalid or expired."""
         try:
             payload_dict = jwt.decode(token, self.secret, algorithms=[self.algorithm])

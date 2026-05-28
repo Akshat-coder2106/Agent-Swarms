@@ -147,10 +147,13 @@ class EngineerAgent:
         # 2. AI Hardening: Hallucination Protection (Pre-Sandbox Syntax Check)
         if relative.endswith(".py"):
             import ast
+
             try:
                 ast.parse(patched)
-            except SyntaxError as e:
-                raise PatchGenerationError(f"Hallucination Protection Triggered: LLM generated invalid Python syntax. {e}")
+            except SyntaxError as exc:
+                raise PatchGenerationError(
+                    f"Hallucination Protection Triggered: LLM generated invalid Python syntax. {exc}"
+                ) from exc
         return PatchProposal(
             task_id=evidence.task_id,
             iteration=iteration,

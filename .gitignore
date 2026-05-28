@@ -1,9 +1,12 @@
 .DS_Store
 .venv/
 .pytest_cache/
+.coverage
+coverage.xml
 __pycache__/
 *.py[cod]
 *.egg-info/
+*.zip
 
 frontend/node_modules/
 frontend/dist/

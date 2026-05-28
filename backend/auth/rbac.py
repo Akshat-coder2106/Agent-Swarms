@@ -3,17 +3,17 @@ Role-Based Access Control (RBAC).
 
 Defines roles, permissions, and access logic.
 """
-from enum import Enum
+from enum import StrEnum
 
 
-class Role(str, Enum):
+class Role(StrEnum):
     ADMIN = "Admin"
     OPERATOR = "Operator"
     REVIEWER = "Reviewer"
     READONLY = "ReadOnly"
 
 
-class Permission(str, Enum):
+class Permission(StrEnum):
     APPROVE_PATCH = "approve_patch"
     ROLLBACK = "rollback"
     TRIGGER_WORKFLOW = "trigger_workflow"

@@ -3,14 +3,14 @@ Image Builder for Firecracker MicroVMs.
 
 Responsible for building the guest root filesystem (ext4) and downloading the kernel.
 """
-import os
 import subprocess
+import tempfile
 from pathlib import Path
 
 
 class ImageBuilder:
-    def __init__(self, output_dir: str = "/tmp/firecracker_images"):
-        self.output_dir = Path(output_dir)
+    def __init__(self, output_dir: str | Path | None = None):
+        self.output_dir = Path(output_dir) if output_dir is not None else Path(tempfile.gettempdir()) / "firecracker_images"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.kernel_path = self.output_dir / "vmlinux.bin"
         self.rootfs_path = self.output_dir / "rootfs.ext4"

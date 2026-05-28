@@ -5,13 +5,14 @@ Logs important events in a structured format (JSON) for compliance.
 """
 import json
 import logging
+import tempfile
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 
-class AuditAction(str, Enum):
+class AuditAction(StrEnum):
     LOGIN = "LOGIN"
     LOGOUT = "LOGOUT"
     APPROVAL = "APPROVAL"
@@ -23,8 +24,8 @@ class AuditAction(str, Enum):
 
 
 class AuditLogger:
-    def __init__(self, log_dir: str = "/tmp/sentinel_logs/audit"):
-        self.log_dir = Path(log_dir)
+    def __init__(self, log_dir: str | Path | None = None):
+        self.log_dir = Path(log_dir) if log_dir is not None else Path(tempfile.gettempdir()) / "sentinel_logs" / "audit"
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.log_file = self.log_dir / "audit.jsonl"
 
@@ -32,8 +33,8 @@ class AuditLogger:
         self,
         action: AuditAction,
         actor: str,
-        resource: Optional[str] = None,
-        details: Optional[dict[str, Any]] = None,
+        resource: str | None = None,
+        details: dict[str, Any] | None = None,
         success: bool = True,
     ) -> None:
         """Write a structured audit log entry."""
