@@ -4,11 +4,12 @@ Temporal Worker for Distributed Scaling.
 Runs workflows and activities to enable horizontal scaling.
 """
 import asyncio
+
 from temporalio.client import Client
 from temporalio.worker import Worker
 
+from .activities import analyze_repository, create_pr, generate_patch, validate_patch
 from .temporal_workflow import SentinelRemediationWorkflow
-from .activities import analyze_repository, generate_patch, validate_patch, create_pr
 
 
 async def main():

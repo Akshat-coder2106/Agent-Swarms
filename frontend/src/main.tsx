@@ -571,12 +571,21 @@ function App() {
           auth={auth}
           operator={operator}
           setOperator={setOperator}
-          onRefresh={() => issueDevToken(operator)}
+          onRefresh={async () => {
+            await issueDevToken(operator);
+          }}
         />
 
         <CoverageSummary implemented={implementedCount} adapters={adapterCount} planned={plannedCount} />
 
-        <button className="secondary-button full-width" onClick={() => window.history.pushState({}, '', '/') || window.dispatchEvent(new PopStateEvent('popstate'))} style={{ marginTop: 'auto' }}>
+        <button
+          className="secondary-button full-width"
+          onClick={() => {
+            window.history.pushState({}, '', '/');
+            window.dispatchEvent(new PopStateEvent('popstate'));
+          }}
+          style={{ marginTop: 'auto' }}
+        >
           <ArrowRight size={17} style={{ transform: 'rotate(180deg)' }} />
           Back to Home
         </button>
@@ -1054,7 +1063,8 @@ function PatchReview({
           <h4 style={{ color: '#ef4444', marginTop: 0, marginBottom: '0.5rem' }}>Critic Rejections</h4>
           {rejections.map((rej, idx) => (
             <div key={idx} style={{ fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-              <strong>Attempt {rej.payload.iteration}:</strong> {rej.payload.reason}
+              <strong>Attempt {String(rej.payload.iteration ?? idx + 1)}:</strong>{" "}
+              {String(rej.payload.reason ?? "No reason provided")}
             </div>
           ))}
         </div>

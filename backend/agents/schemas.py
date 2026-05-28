@@ -3,8 +3,8 @@ Pydantic schemas for structured LLM outputs.
 
 Enforces deterministic schema validation for agents.
 """
-from typing import List, Optional
 from pydantic import BaseModel, Field
+
 
 class IssueFinding(BaseModel):
     file_path: str = Field(..., description="Path to the file with the issue")
@@ -21,5 +21,5 @@ class PatchProposalSchema(BaseModel):
 
 class ValidationResultSchema(BaseModel):
     is_safe: bool = Field(..., description="True if the patch compiles and passes tests")
-    remaining_vulnerabilities: List[IssueFinding] = Field(default_factory=list)
+    remaining_vulnerabilities: list[IssueFinding] = Field(default_factory=list)
     sandbox_exit_code: int = Field(..., description="Exit code from the sandbox execution")

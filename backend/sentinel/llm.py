@@ -150,11 +150,7 @@ class OpenRouterLLMProvider:
             method="POST",
         )
         try:
-            import ssl
-            ctx = ssl.create_default_context()
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-            with urllib.request.urlopen(request, timeout=self._timeout_seconds, context=ctx) as response:
+            with urllib.request.urlopen(request, timeout=self._timeout_seconds) as response:  # noqa: S310
                 payload = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")

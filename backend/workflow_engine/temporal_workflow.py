@@ -4,10 +4,11 @@ Temporal workflow definitions for durable execution.
 Replaces in-memory LangGraph orchestrator.
 """
 from datetime import timedelta
+
 from temporalio import workflow
 
 with workflow.unsafe.imports_passed_through():
-    from .activities import analyze_repository, generate_patch, validate_patch, create_pr
+    from .activities import analyze_repository, create_pr, generate_patch, validate_patch
 
 
 @workflow.defn
