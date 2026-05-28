@@ -3,11 +3,13 @@ Temporal Activities for Sentinel Workflow.
 
 Activities perform discrete, retryable actions.
 """
-from typing import Any, Dict, List
+from typing import Any
+
 from temporalio import activity
 
+
 @activity.defn
-async def analyze_repository(repo_url: str) -> List[Dict[str, Any]]:
+async def analyze_repository(repo_url: str) -> list[dict[str, Any]]:
     """Analyzes a repository for security vulnerabilities."""
     activity.logger.info(f"Analyzing repository: {repo_url}")
     # In a real implementation, this invokes the Scanners or the Architect agent.
@@ -23,7 +25,7 @@ async def analyze_repository(repo_url: str) -> List[Dict[str, Any]]:
     ]
 
 @activity.defn
-async def generate_patch(finding: Dict[str, Any]) -> Dict[str, Any]:
+async def generate_patch(finding: dict[str, Any]) -> dict[str, Any]:
     """Generates a secure patch for a given finding using the Engineer agent."""
     activity.logger.info(f"Generating patch for: {finding['file_path']}")
     # Returns a stubbed patch proposal.
@@ -34,14 +36,14 @@ async def generate_patch(finding: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 @activity.defn
-async def validate_patch(payload: Dict[str, Any]) -> bool:
+async def validate_patch(payload: dict[str, Any]) -> bool:
     """Validates the patch in the Firecracker Sandbox."""
     activity.logger.info("Validating patch in Sandbox...")
     # Real implementation calls the Sandbox Service
     return True
 
 @activity.defn
-async def create_pr(payload: Dict[str, Any]) -> str:
+async def create_pr(payload: dict[str, Any]) -> str:
     """Creates a Pull Request via the GitHub App integration."""
     activity.logger.info("Creating PR via GitHub App...")
     return "https://github.com/demo/repo/pull/42"

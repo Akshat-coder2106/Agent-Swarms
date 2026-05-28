@@ -4,10 +4,8 @@ GitHub App Integration.
 Handles GitHub App authentication using private keys,
 generates installation tokens, and performs PR operations.
 """
-import asyncio
 import time
 import urllib.parse
-from typing import Optional
 
 import httpx
 import jwt

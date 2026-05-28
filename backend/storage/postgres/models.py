@@ -5,8 +5,9 @@ Replaces ephemeral in-memory state with durable persistence.
 """
 import uuid
 from datetime import datetime
-from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Text, JSON
-from sqlalchemy.orm import declarative_base, relationship
+
+from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 

@@ -6,10 +6,10 @@ It starts the VM, connects via vsock, and executes commands inside the guest saf
 """
 import json
 import logging
-import os
 import shutil
 import socket
 import subprocess
+import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,7 +32,7 @@ class VMManager:
     def __init__(self, vm_id: str, config: VMConfig):
         self.vm_id = vm_id
         self.config = config
-        self.base_dir = Path(f"/tmp/firecracker/{self.vm_id}")
+        self.base_dir = Path(tempfile.gettempdir()) / "firecracker" / self.vm_id
         self.socket_path = self.base_dir / "firecracker.sock"
         self.workspace_dir = self.base_dir / "workspace"
         self.process = None

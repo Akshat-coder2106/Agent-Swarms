@@ -7,7 +7,8 @@ and triggers Sentinel workflows.
 import hashlib
 import hmac
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from fastapi import HTTPException, Request
 
@@ -27,8 +28,8 @@ class WebhookHandler:
             
         try:
             signature = signature_header.split("=")[1]
-        except IndexError:
-            raise HTTPException(status_code=401, detail="Invalid signature format")
+        except IndexError as exc:
+            raise HTTPException(status_code=401, detail="Invalid signature format") from exc
 
         payload_body = await request.body()
         expected_signature = hmac.new(
