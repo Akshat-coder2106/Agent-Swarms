@@ -1,0 +1,21 @@
+name: "Project Sentinel - AI DevSecOps"
+description: "Automatically audit and fix security vulnerabilities with AI agents"
+inputs:
+  anthropic_api_key:
+    description: "Your Anthropic API key"
+    required: true
+  auto_pr:
+    description: "Automatically create PR for approved patches"
+    required: false
+    default: "true"
+  severity_threshold:
+    description: "Minimum severity to action: LOW, MEDIUM, HIGH, CRITICAL"
+    required: false
+    default: "HIGH"
+  github_token:
+    description: "GitHub token for creating PRs"
+    required: false
+    default: "${{ github.token }}"
+runs:
+  using: "docker"
+  image: "Dockerfile.action"

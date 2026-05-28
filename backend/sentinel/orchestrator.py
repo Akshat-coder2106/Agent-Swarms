@@ -100,7 +100,8 @@ class SentinelOrchestrator:
         self._critic = CriticAgent(self._llm_provider)
         self._sandbox = SandboxRunner(settings, self._ingestor)
         self._graph = SentinelLangGraph(
-            LangGraphConfig(token_budget=settings.token_budget)
+            LangGraphConfig(token_budget=settings.token_budget),
+            event_bus=self._event_bus,
         ) if settings.enable_langgraph else None
         if self._graph:
             self._graph.set_agents(
@@ -138,7 +139,7 @@ class SentinelOrchestrator:
         try:
             session.status = SessionStatus.RUNNING
             await self._save(session)
-            memory = self._ingestor.ingest(session.repo_path)
+            memory = await asyncio.to_thread(self._ingestor.ingest, session.repo_path)
             session.memory = memory
             await self._emit(
                 session,
@@ -273,8 +274,34 @@ class SentinelOrchestrator:
                     task_id=task.task_id,
                 )
 
+                await self._emit(
+                    session,
+                    EventType.VALIDATION_STARTED,
+                    AgentRole.CRITIC,
+                    {"engine": self._sandbox.engine_name, "status": "booting"},
+                    task_id=task.task_id,
+                )
+
                 validation = self._sandbox.validate(repo_root=repo_root, memory=memory, patch=patch)
                 session.validations.append(validation)
+
+                # Emit sandbox log with engine metadata
+                sandbox_meta = validation.sandbox_metadata
+                if sandbox_meta:
+                    await self._emit(
+                        session,
+                        EventType.SANDBOX_LOG,
+                        AgentRole.CRITIC,
+                        {
+                            "engine": sandbox_meta.engine,
+                            "boot_time_ms": sandbox_meta.boot_time_ms,
+                            "isolation_level": sandbox_meta.isolation_level,
+                            "vsock_status": sandbox_meta.vsock_status,
+                            "status": "completed",
+                        },
+                        task_id=task.task_id,
+                    )
+
                 await self._emit(
                     session,
                     EventType.SANDBOX_RESULT,

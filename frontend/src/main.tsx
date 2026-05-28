@@ -133,6 +133,16 @@ type Patch = {
   files: Array<{ file_path: string; original_sha256: string; patched_sha256: string }>;
 };
 
+type SandboxMetadata = {
+  engine: string;
+  boot_time_ms: number;
+  vsock_status: string;
+  vcpu_count: number;
+  memory_mb: number;
+  snapshot_used: boolean;
+  isolation_level: string;
+};
+
 type Validation = {
   patch_id: string;
   verdict: "APPROVE" | "REJECT" | "ESCALATE";
@@ -142,6 +152,7 @@ type Validation = {
   resolved_findings: number;
   total_findings: number;
   duration_ms: number;
+  sandbox_metadata?: SandboxMetadata | null;
 };
 
 type Delta = {
@@ -498,7 +509,9 @@ function App() {
       },
     });
     if (!response.ok) {
-      setError(await response.text());
+      const errText = await response.text();
+      setError(errText);
+      alert(`Failed to create PR: ${errText}`);
       return;
     }
     const data = await response.json();
@@ -638,19 +651,19 @@ function App() {
         </section>
 
         <section className="dashboard-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div className="metric-card" style={{ background: 'var(--surface-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div className="metric-card-custom" style={{ background: 'var(--surface-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>MTTR</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{metrics ? metrics.mttr_minutes.toFixed(1) + 'm' : '--'}</div>
           </div>
-          <div className="metric-card" style={{ background: 'var(--surface-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div className="metric-card-custom" style={{ background: 'var(--surface-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Patch Success Rate</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{metrics ? Math.round(metrics.approval_rate * 100) + '%' : '--'}</div>
           </div>
-          <div className="metric-card" style={{ background: 'var(--surface-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div className="metric-card-custom" style={{ background: 'var(--surface-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Findings Resolved</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{metrics ? `${metrics.resolved_findings} / ${metrics.total_findings}` : '--'}</div>
           </div>
-          <div className="metric-card" style={{ background: 'var(--surface-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <div className="metric-card-custom" style={{ background: 'var(--surface-color)', padding: '1rem', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Sandbox Pass Rate</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{metrics ? Math.round(metrics.sandbox_pass_rate * 100) + '%' : '--'}</div>
           </div>
@@ -894,6 +907,16 @@ function ValidationMatrix({ validation, risk }: { validation?: Validation; risk:
   if (!validation) {
     return <EmptyState title="Waiting for sandbox output" />;
   }
+
+  const meta = validation.sandbox_metadata;
+  const engineName = meta?.engine ?? "firecracker-microvm";
+  const bootTime = meta?.boot_time_ms ?? 0;
+  const vsockStatus = meta?.vsock_status ?? "N/A";
+  const vcpuCount = meta?.vcpu_count ?? 1;
+  const memoryMb = meta?.memory_mb ?? 256;
+  const isolationLevel = meta?.isolation_level ?? "process";
+  const isHardwareIsolated = isolationLevel === "hardware";
+
   return (
     <div className="axis-list">
       <div className="validation-head">
@@ -905,19 +928,25 @@ function ValidationMatrix({ validation, risk }: { validation?: Validation; risk:
       <div style={{ padding: "12px", background: "#1e293b", color: "#f8fafc", borderRadius: "8px", marginBottom: "16px", fontFamily: "monospace", fontSize: "12px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
           <span style={{ color: "#a78bfa" }}>▶ sandbox.engine</span>
-          <span style={{ color: "#34d399" }}>firecracker-microvm</span>
+          <span style={{ color: isHardwareIsolated ? "#34d399" : "#fbbf24" }}>{engineName}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
           <span>Boot Time:</span>
-          <span>114ms</span>
+          <span>{bootTime}ms</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
           <span>Vsock RPC Status:</span>
-          <span style={{ color: "#34d399" }}>ESTABLISHED</span>
+          <span style={{ color: vsockStatus === "ESTABLISHED" ? "#34d399" : "#94a3b8" }}>{vsockStatus}</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+          <span>Resource Limits:</span>
+          <span>{vcpuCount} vCPU, {memoryMb}MB RAM, ext4</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>Resource Limits:</span>
-          <span>1 vCPU, 512MB RAM, ext4</span>
+          <span>Isolation:</span>
+          <span style={{ color: isHardwareIsolated ? "#34d399" : "#fbbf24" }}>
+            {isHardwareIsolated ? "🔒 Hardware (MicroVM)" : "🛡️ Process (ulimit)"}
+          </span>
         </div>
       </div>
       {validation.axes.map((axis) => (

@@ -1,0 +1,25 @@
+name: Project Sentinel DevSecOps
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  audit-and-fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # Required for pushing branches (if auto_pr is true)
+      pull-requests: write # Required for creating PRs
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Project Sentinel AI Audit
+        uses: Akshat-coder2106/Agent-Swarms@main
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          auto_pr: 'true'
+          severity_threshold: 'HIGH'

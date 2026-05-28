@@ -23,6 +23,13 @@ class Settings:
     anthropic_model: str
     llm_timeout_seconds: int
     enable_langgraph: bool
+    # Sandbox settings
+    sandbox_engine: str = "auto"  # "auto" | "firecracker" | "local"
+    sandbox_vcpu_count: int = 1
+    sandbox_memory_mb: int = 256
+    sandbox_snapshot_dir: str = "/tmp/sentinel_snapshots"
+    sandbox_pool_size: int = 1
+    sandbox_enable_network: bool = False
 
 
 def _csv(value: str) -> tuple[str, ...]:
@@ -64,6 +71,12 @@ def load_settings() -> Settings:
         token_budget=int(os.getenv("SENTINEL_TOKEN_BUDGET", "2000000")),
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", ""),
         anthropic_model=os.getenv("SENTINEL_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
-        llm_timeout_seconds=int(os.getenv("SENTINEL_LLM_TIMEOUT_SECONDS", "45")),
+        llm_timeout_seconds=int(os.getenv("SENTINEL_LLM_TIMEOUT_SECONDS", "90")),
         enable_langgraph=os.getenv("SENTINEL_ENABLE_LANGGRAPH", "true").lower() == "true",
+        sandbox_engine=os.getenv("SENTINEL_SANDBOX_ENGINE", "auto"),
+        sandbox_vcpu_count=int(os.getenv("SENTINEL_SANDBOX_VCPU_COUNT", "1")),
+        sandbox_memory_mb=int(os.getenv("SENTINEL_SANDBOX_MEMORY_MB", "256")),
+        sandbox_snapshot_dir=os.getenv("SENTINEL_SANDBOX_SNAPSHOT_DIR", "/tmp/sentinel_snapshots"),
+        sandbox_pool_size=int(os.getenv("SENTINEL_SANDBOX_POOL_SIZE", "1")),
+        sandbox_enable_network=os.getenv("SENTINEL_SANDBOX_ENABLE_NETWORK", "false").lower() == "true",
     )

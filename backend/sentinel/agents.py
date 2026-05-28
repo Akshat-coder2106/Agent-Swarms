@@ -119,11 +119,14 @@ class EngineerAgent:
             
         generated_by = "deterministic-rule"
         if patched == original and self._llm_provider and self._llm_provider.is_available:
-            llm_patch = self._patch_with_llm(original=original, evidence=evidence, operator_hint=operator_hint)
-            patched = llm_patch["patched"]
-            rationale = llm_patch["rationale"]
-            confidence = llm_patch["confidence"]
-            generated_by = f"llm:{self._llm_provider.provider_name}"
+            try:
+                llm_patch = self._patch_with_llm(original=original, evidence=evidence, operator_hint=operator_hint)
+                patched = llm_patch["patched"]
+                rationale = llm_patch["rationale"]
+                confidence = llm_patch["confidence"]
+                generated_by = f"llm:{self._llm_provider.provider_name}"
+            except PatchGenerationError:
+                pass  # LLM failed, let the `patched == original` check escalate it
         if patched == original:
             raise PatchGenerationError(
                 f"No deterministic or configured LLM patch available for {evidence.finding.rule_id}"
@@ -186,19 +189,24 @@ class EngineerAgent:
             return self._patch_javascript_xss(original)
         if finding.rule_id == "git.merge_conflict":
             return self._patch_git_conflict(original)
-        if finding.rule_id == "python.unsafe_execution" and operator_hint:
-            return self._annotate_for_manual_followup(original, finding)
+        if finding.rule_id == "python.unsafe_execution":
+            patched = self._patch_eval(original)
+            if patched != original:
+                return patched
+            if operator_hint:
+                return self._annotate_for_manual_followup(original, finding)
         return original
 
     def _patch_python_sql_fstring(self, original: str) -> str:
-        pattern = re.compile(
+        # Pattern 1: return connection.execute(query)
+        pattern_return = re.compile(
             r"(?P<indent>^[ \t]*)query\s*=\s*f(?P<quote>[\"'])(?P<sql>.*?\{(?P<variable>[A-Za-z_][\w\.]*)\}.*?)"
-            r"(?P=quote)\s*\n(?P=indent)return\s+(?P<connection>[A-Za-z_][\w\.]*)\.execute\(query\)"
+            r"(?P=quote)\s*\n(?P=indent)return\s+(?P<connection>[A-Za-z_][\w\.]*)\s*\.execute\(query\)"
             r"(?P<tail>[^\n]*)",
             re.MULTILINE,
         )
 
-        def replace(match: re.Match[str]) -> str:
+        def replace_return(match: re.Match[str]) -> str:
             sql = match.group("sql")
             variable = match.group("variable")
             parameterized = re.sub(r"'?%\{" + re.escape(variable) + r"\}%'?", "?", sql)
@@ -210,7 +218,35 @@ class EngineerAgent:
                 f"{quote}{parameterized}{quote}, (f\"%{{{variable}}}%\",)){tail}"
             )
 
-        patched, replacements = pattern.subn(replace, original, count=1)
+        patched, replacements = pattern_return.subn(replace_return, original, count=1)
+        if replacements:
+            return patched
+
+        # Pattern 2: var = connection.execute(query).fetchall() / .fetchone() etc.
+        pattern_assign = re.compile(
+            r"(?P<indent>^[ \t]*)\w+\s*=\s*f(?P<quote>[\"'])(?P<sql>.*?\{(?P<variable>[A-Za-z_][\w\.]*)\}.*?)"
+            r"(?P=quote)\s*\n(?P=indent)(?P<lhs>[A-Za-z_][\w]*)\s*=\s*(?P<connection>[A-Za-z_][\w\.]*)"
+            r"\.execute\(\w+\)(?P<chain>[\.\w()]*)",
+            re.MULTILINE,
+        )
+
+        def replace_assign(match: re.Match[str]) -> str:
+            sql = match.group("sql")
+            variable = match.group("variable")
+            parameterized = re.sub(r"'?%\{" + re.escape(variable) + r"\}%'?", "?", sql)
+            parameterized = parameterized.replace("{" + variable + "}", "?")
+            parameterized = parameterized.replace("'%" + "{" + variable + "}" + "%'", "?")
+            parameterized = parameterized.replace("%" + "{" + variable + "}" + "%", "?")
+            # Also handle LIKE '%{var}%' → LIKE ?
+            parameterized = re.sub(r"'%\?%'", "?", parameterized)
+            quote = '"' if "'" in parameterized else "'"
+            chain = match.group("chain")
+            return (
+                f"{match.group('indent')}{match.group('lhs')} = {match.group('connection')}.execute("
+                f"{quote}{parameterized}{quote}, (f\"%{{{variable}}}%\",)){chain}"
+            )
+
+        patched, replacements = pattern_assign.subn(replace_assign, original, count=1)
         return patched if replacements else original
 
     def _patch_javascript_sql_template(self, original: str) -> str:
@@ -307,6 +343,14 @@ class EngineerAgent:
         patched = re.sub(r",\s*Loader\s*=\s*yaml\.[A-Za-z]+Loader", "", patched, count=1)
         return patched
 
+    def _patch_eval(self, original: str) -> str:
+        """Replace eval() with ast.literal_eval() for safe data evaluation."""
+        patched = re.sub(r"\beval\s*\(", "ast.literal_eval(", original)
+        if patched != original:
+            if "import ast" not in patched:
+                patched = "import ast\n" + patched
+        return patched
+
     def _patch_python_weak_random(self, original: str) -> str:
         if "import secrets" not in original:
             patched = re.sub(r"(^import random\s*$)", r"\1\nimport secrets", original, count=1, flags=re.MULTILINE)
@@ -351,7 +395,8 @@ class EngineerAgent:
             f"Original file:\n```\n{original}\n```"
         )
         try:
-            completion = self._llm_provider.complete(system=system, prompt=prompt, max_tokens=4096)
+            completion = self._llm_provider.complete(system=system, prompt=prompt, max_tokens=8192)
+            print(f'DEBUG: LLM Patch Output: {completion.text}', flush=True)
             payload = extract_json_object(completion.text)
         except LLMError as exc:
             raise PatchGenerationError(str(exc)) from exc
@@ -379,9 +424,10 @@ class EngineerAgent:
     ) -> PatchProposal:
         """Adversarially defend or amend the patch based on the Critic's challenges."""
         if not self._llm_provider or not self._llm_provider.is_available:
-            patch.rationale = f"{patch.rationale} Defended against {len(challenges)} vectors."
-            patch.engineer_confidence = max(0.5, patch.engineer_confidence - 0.05 * len(challenges))
-            return patch
+            return patch.model_copy(update={
+                "rationale": f"{patch.rationale} Defended against {len(challenges)} vectors.",
+                "engineer_confidence": max(0.5, patch.engineer_confidence - 0.05 * len(challenges))
+            })
 
         system = (
             "You are Project Sentinel's Security Patch Engineer. Defend or revise your patch diff "
@@ -402,8 +448,10 @@ class EngineerAgent:
             rationale = str(payload.get("defense_rationale", "Defended against adversarial challenges."))
             confidence = float(payload.get("calibrated_confidence", patch.engineer_confidence))
             relative = patch.files[0].file_path if patch.files else "unknown_file"
+            new_files = list(patch.files)
+            new_unified_diff = patch.unified_diff
             if patched.strip() and patched != original:
-                unified_diff = "".join(
+                new_unified_diff = "".join(
                     difflib.unified_diff(
                         original.splitlines(keepends=True),
                         patched.splitlines(keepends=True),
@@ -411,10 +459,15 @@ class EngineerAgent:
                         tofile=f"b/{relative}",
                     )
                 )
-                patch.files[0].patched = patched
-                patch.unified_diff = unified_diff
-            patch.rationale = f"{patch.rationale} [Defense Round] {rationale}"
-            patch.engineer_confidence = max(0.0, min(confidence, 0.95))
+                if new_files:
+                    new_files[0] = new_files[0].model_copy(update={"patched": patched})
+            
+            patch = patch.model_copy(update={
+                "files": new_files,
+                "unified_diff": new_unified_diff,
+                "rationale": f"{patch.rationale} [Defense Round] {rationale}",
+                "engineer_confidence": max(0.0, min(confidence, 0.95))
+            })
         except Exception:
             pass
         return patch

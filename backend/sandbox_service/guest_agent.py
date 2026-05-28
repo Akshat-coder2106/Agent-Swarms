@@ -1,81 +1,81 @@
-"""
-Guest Agent running inside the Firecracker MicroVM.
+"""Guest Agent running inside a Firecracker MicroVM.
 
-It listens on a vsock port for commands from the host VMManager,
-executes them safely, and returns structured stdout/stderr/exit_code via vsock.
+Listens on AF_VSOCK port 5000 for JSON-encoded commands from the host
+``VMManager``, executes them locally in the guest, and streams structured
+results back through the vsock connection.
+
+Protocol
+--------
+- Transport: AF_VSOCK, port 5000, newline-delimited JSON
+- Request:  ``{"type": "run_test"|"apply_patch"|"health_check", "payload": {...}, "request_id": "..."}``
+- Response: ``{"request_id": "...", "exit_code": 0, "stdout": "...", "stderr": "...", ...}``
+
+This file is copied into the guest rootfs by ``image_builder.py`` and
+auto-started via ``/sbin/init``.
 """
+
+from __future__ import annotations
+
 import json
+import os
+import signal
 import socket
 import subprocess
 import sys
+import time
 import traceback
 from pathlib import Path
+from typing import Any
+
+# Track boot time for health checks
+_BOOT_TIME = time.monotonic()
+
+# Vsock port the agent listens on
+VSOCK_PORT = 5000
 
 
-def main():
-    # Firecracker vsock uses AF_VSOCK (family 40)
-    # The guest listens on a specific port, e.g., 5000, for the host to connect.
-    # Alternatively, the host listens and the guest connects.
-    # For a guest agent, listening on a port is typical.
-    
-    VSOCK_PORT = 5000
-    
-    try:
-        # Standard AF_VSOCK constant is 40 in Python (Linux)
-        server = socket.socket(socket.AF_VSOCK, socket.SOCK_STREAM)
-        # CID_ANY is -1
-        server.bind((socket.VMADDR_CID_ANY, VSOCK_PORT))
-        server.listen(1)
-        print(f"Guest Agent listening on vsock port {VSOCK_PORT}...")
-        
-        while True:
-            conn, addr = server.accept()
-            handle_connection(conn)
-    except Exception as e:
-        print(f"Guest Agent failed to start: {e}")
-        sys.exit(1)
+# ---------------------------------------------------------------------------
+# Signal handling
+# ---------------------------------------------------------------------------
 
 
-def handle_connection(conn):
-    try:
-        # Read the command payload (JSON)
-        data = b""
-        while True:
-            chunk = conn.recv(4096)
-            if not chunk:
-                break
-            data += chunk
-            if b"\n" in chunk: # Protocol uses newline as delimiter
-                break
-                
-        if not data:
-            return
-            
-        payload = json.loads(data.decode("utf-8").strip())
-        command = payload.get("command", [])
-        working_dir = payload.get("working_dir", "/workspace")
-        timeout = payload.get("timeout", 120)
-        
-        # Execute the command
-        result = run_command(command, working_dir, timeout)
-        
-        # Send back the result
-        response = json.dumps(result) + "\n"
-        conn.sendall(response.encode("utf-8"))
-    except Exception as e:
-        error_resp = json.dumps({
-            "exit_code": -1,
+_shutdown_requested = False
+
+
+def _handle_sigterm(signum: int, frame: Any) -> None:
+    global _shutdown_requested
+    _shutdown_requested = True
+    print("Guest Agent: received SIGTERM, shutting down gracefully...")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGTERM, _handle_sigterm)
+
+
+# ---------------------------------------------------------------------------
+# Command handlers
+# ---------------------------------------------------------------------------
+
+
+def handle_run_test(payload: dict) -> dict:
+    """Execute a command list and return structured results."""
+    command = payload.get("command", [])
+    working_dir = payload.get("working_dir", "/workspace")
+    timeout = payload.get("timeout", 120)
+
+    if not command:
+        return {
+            "exit_code": 1,
             "stdout": "",
-            "stderr": traceback.format_exc()
-        }) + "\n"
-        conn.sendall(error_resp.encode("utf-8"))
-    finally:
-        conn.close()
+            "stderr": "No command provided",
+            "cpu_time_ms": 0,
+            "memory_peak_kb": 0,
+        }
 
-
-def run_command(command: list[str], working_dir: str, timeout: int) -> dict:
     try:
         Path(working_dir).mkdir(parents=True, exist_ok=True)
+
+        start = time.monotonic()
         process = subprocess.run(
             command,
             cwd=working_dir,
@@ -83,23 +83,205 @@ def run_command(command: list[str], working_dir: str, timeout: int) -> dict:
             text=True,
             timeout=timeout,
         )
+        cpu_time_ms = int((time.monotonic() - start) * 1000)
+
+        # Try to read peak memory from /proc
+        memory_peak_kb = _get_memory_peak_kb()
+
         return {
             "exit_code": process.returncode,
-            "stdout": process.stdout,
-            "stderr": process.stderr,
+            "stdout": process.stdout[-8192:],  # Cap output size
+            "stderr": process.stderr[-8192:],
+            "cpu_time_ms": cpu_time_ms,
+            "memory_peak_kb": memory_peak_kb,
         }
     except subprocess.TimeoutExpired:
         return {
             "exit_code": 124,
             "stdout": "",
-            "stderr": "Command timed out."
+            "stderr": f"Command timed out after {timeout}s",
+            "cpu_time_ms": timeout * 1000,
+            "memory_peak_kb": 0,
         }
-    except Exception as e:
+    except FileNotFoundError as exc:
+        return {
+            "exit_code": 127,
+            "stdout": "",
+            "stderr": f"Command not found: {exc}",
+            "cpu_time_ms": 0,
+            "memory_peak_kb": 0,
+        }
+    except Exception as exc:
         return {
             "exit_code": 1,
             "stdout": "",
-            "stderr": str(e)
+            "stderr": str(exc),
+            "cpu_time_ms": 0,
+            "memory_peak_kb": 0,
         }
+
+
+def handle_apply_patch(payload: dict) -> dict:
+    """Write file content to a path in the workspace."""
+    file_path = payload.get("file_path", "")
+    content = payload.get("content", "")
+    working_dir = payload.get("working_dir", "/workspace")
+
+    if not file_path:
+        return {"exit_code": 1, "stdout": "", "stderr": "No file_path provided"}
+
+    try:
+        target = Path(working_dir) / file_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+        return {
+            "exit_code": 0,
+            "stdout": f"Patched {file_path} ({len(content)} bytes)",
+            "stderr": "",
+        }
+    except Exception as exc:
+        return {"exit_code": 1, "stdout": "", "stderr": str(exc)}
+
+
+def handle_health_check(_payload: dict) -> dict:
+    """Return agent health information."""
+    uptime_ms = int((time.monotonic() - _BOOT_TIME) * 1000)
+    return {
+        "exit_code": 0,
+        "stdout": json.dumps({
+            "status": "ok",
+            "uptime_ms": uptime_ms,
+            "python_version": sys.version,
+            "pid": os.getpid(),
+        }),
+        "stderr": "",
+    }
+
+
+# Dispatch table
+HANDLERS = {
+    "run_test": handle_run_test,
+    "apply_patch": handle_apply_patch,
+    "health_check": handle_health_check,
+}
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _get_memory_peak_kb() -> int:
+    """Read VmPeak from /proc/self/status (Linux only)."""
+    try:
+        with open("/proc/self/status") as f:
+            for line in f:
+                if line.startswith("VmPeak:"):
+                    return int(line.split()[1])
+    except (FileNotFoundError, ValueError, IndexError):
+        pass
+    return 0
+
+
+# ---------------------------------------------------------------------------
+# Connection handler
+# ---------------------------------------------------------------------------
+
+
+def handle_connection(conn: socket.socket) -> None:
+    """Process a single client connection from the host VMManager."""
+    try:
+        data = b""
+        while True:
+            chunk = conn.recv(4096)
+            if not chunk:
+                break
+            data += chunk
+            if b"\n" in chunk:
+                break
+
+        if not data:
+            return
+
+        request = json.loads(data.decode("utf-8").strip())
+
+        # Support both new protocol (with "type") and legacy (flat command)
+        cmd_type = request.get("type", "run_test")
+        payload = request.get("payload", request)
+        request_id = request.get("request_id", "unknown")
+
+        # Legacy support: if "command" is at top level, treat as run_test
+        if "command" in request and "type" not in request:
+            payload = request
+            cmd_type = "run_test"
+
+        handler = HANDLERS.get(cmd_type, handle_run_test)
+        result = handler(payload)
+
+        response = {
+            "request_id": request_id,
+            **result,
+        }
+
+        conn.sendall((json.dumps(response) + "\n").encode("utf-8"))
+
+    except Exception:
+        error_resp = json.dumps({
+            "request_id": "error",
+            "exit_code": -1,
+            "stdout": "",
+            "stderr": traceback.format_exc(),
+        }) + "\n"
+        try:
+            conn.sendall(error_resp.encode("utf-8"))
+        except Exception:
+            pass
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+
+def main() -> None:
+    """Start the guest agent listener on AF_VSOCK."""
+    try:
+        # AF_VSOCK = 40 on Linux
+        server = socket.socket(socket.AF_VSOCK, socket.SOCK_STREAM)
+        server.bind((socket.VMADDR_CID_ANY, VSOCK_PORT))
+        server.listen(4)
+        print(f"Guest Agent listening on vsock port {VSOCK_PORT}...")
+
+        while not _shutdown_requested:
+            server.settimeout(1.0)
+            try:
+                conn, addr = server.accept()
+                handle_connection(conn)
+            except socket.timeout:
+                continue
+
+    except AttributeError:
+        # AF_VSOCK not available (e.g. macOS) — fall back to TCP for testing
+        print("AF_VSOCK not available, falling back to TCP on 127.0.0.1:5000")
+        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind(("127.0.0.1", VSOCK_PORT))
+        server.listen(4)
+
+        while not _shutdown_requested:
+            server.settimeout(1.0)
+            try:
+                conn, addr = server.accept()
+                handle_connection(conn)
+            except socket.timeout:
+                continue
+
+    except Exception as exc:
+        print(f"Guest Agent failed to start: {exc}")
+        sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

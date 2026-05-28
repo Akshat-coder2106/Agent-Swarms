@@ -2,6 +2,44 @@
 
 Autonomous DevSecOps swarm featuring hardware-isolated Firecracker microVMs, deterministic Temporal workflows, Pydantic-enforced LLM agents, and proper Role-Based Access Control (RBAC).
 
+## Use as GitHub Action
+[![GitHub Action Status](https://img.shields.io/github/actions/workflow/status/Akshat-coder2106/Agent-Swarms/sentinel-example.yml?branch=main)](https://github.com/Akshat-coder2106/Agent-Swarms/actions)
+
+You can easily integrate Project Sentinel into any of your own repositories using our GitHub Action!
+
+### Workflow Snippet
+Simply create a file at `.github/workflows/sentinel.yml` in your repo:
+```yaml
+name: Sentinel Audit
+on: [push, pull_request]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Akshat-coder2106/Agent-Swarms@main
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Setup Instructions
+1. Navigate to your repository on GitHub.
+2. Go to **Settings > Secrets and variables > Actions**.
+3. Click **New repository secret**.
+4. Name it `ANTHROPIC_API_KEY` and paste in your valid Anthropic API key.
+
+### Pricing
+| Repository Type | Cost |
+| --- | --- |
+| **Public Open Source** | **Free** (Uses GitHub-provided minutes) |
+| **Private** | Dependent on your GitHub Actions billing plan |
+
+*(Note: You will still be charged by Anthropic for LLM token usage based on the size of your repository).*
+
 ## Architecture 
 
 ```mermaid

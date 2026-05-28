@@ -70,12 +70,15 @@ class FindingCategory(StrEnum):
     CRYPTOGRAPHY = "CRYPTOGRAPHY"
     DEPENDENCY = "DEPENDENCY"
     CONFIGURATION = "CONFIGURATION"
+    MISC = "MISC"
 
 
 class EventType(StrEnum):
     ARCHITECT_UPDATE = "ARCHITECT_UPDATE"
     SCOUT_RETRIEVAL = "SCOUT_RETRIEVAL"
     ENGINEER_PATCH = "ENGINEER_PATCH"
+    VALIDATION_STARTED = "VALIDATION_STARTED"
+    SANDBOX_LOG = "SANDBOX_LOG"
     SANDBOX_RESULT = "SANDBOX_RESULT"
     CRITIC_VERDICT = "CRITIC_VERDICT"
     CRITIC_REJECTION = "CRITIC_REJECTION"
@@ -265,6 +268,21 @@ class ValidationAxis(BaseModel):
     detail: str
 
 
+class SandboxMetadata(BaseModel):
+    """Dynamic metadata about the sandbox engine used for validation."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    engine: str  # "firecracker-microvm" | "process-sandbox"
+    boot_time_ms: int = 0
+    vsock_status: str = "N/A"  # "ESTABLISHED" | "N/A"
+    vcpu_count: int = 1
+    memory_mb: int = 256
+    snapshot_used: bool = False
+    isolation_level: str = "process"  # "hardware" | "process"
+    workspace_path: str = ""
+
+
 class ValidationResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -282,6 +300,7 @@ class ValidationResult(BaseModel):
     total_findings: int = Field(ge=0)
     coverage_delta: float = 0.0
     duration_ms: int = Field(ge=0)
+    sandbox_metadata: SandboxMetadata | None = None
 
 
 class LogicalDeltaSnapshot(BaseModel):

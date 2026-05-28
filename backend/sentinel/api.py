@@ -173,10 +173,11 @@ async def system_capabilities(_principal: Annotated[Principal, Depends(require_a
             CapabilityItem(
                 key="sandbox_validation",
                 label="Sandboxed patch validation",
-                status=CapabilityStatus.MVP_ADAPTER,
+                status=CapabilityStatus.IMPLEMENTED,
                 detail=(
-                    "Ephemeral copied workspace with sanitized commands and limits; "
-                    "Firecracker and Wasmtime are future runners."
+                    f"Dual-mode sandbox: Firecracker MicroVM (Linux/KVM) with snapshot forking "
+                    f"and AF_VSOCK, or process-isolated subprocess (macOS). "
+                    f"Active engine: {orchestrator._sandbox.engine_name}."
                 ),
             ),
             CapabilityItem(

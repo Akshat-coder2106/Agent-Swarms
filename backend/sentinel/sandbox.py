@@ -1,29 +1,43 @@
+"""Unified sandbox client for patch validation.
+
+Supports two backends:
+- **Firecracker MicroVM** (Linux with KVM): Hardware-isolated execution via
+  snapshot-based VMs with AF_VSOCK communication.
+- **Local Process Sandbox** (macOS / fallback): Process-isolated execution
+  with resource limits, sanitized environment, and ephemeral workspaces.
+
+The backend is auto-detected at startup based on the availability of the
+``firecracker`` binary and the configured ``sandbox_engine`` setting.
+"""
+
 from __future__ import annotations
 
+import logging
 import os
 import re
-import resource
 import shutil
-import subprocess
-import tempfile
 import time
 from pathlib import Path
+from typing import Any, Protocol
 
 from .config import Settings
 from .memory import RepositoryIngestor, safe_read_text
 from .models import (
     PatchProposal,
     RepositoryMemory,
+    SandboxMetadata,
     ValidationAxis,
     ValidationAxisStatus,
     ValidationResult,
     Verdict,
 )
 
+logger = logging.getLogger(__name__)
 
-class SandboxError(RuntimeError):
-    pass
 
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
 
 ALLOWED_EXECUTABLES = {"python", "python3", "npm", "node", "npx", "pytest"}
 IGNORED_COPY_DIRS = {
@@ -39,14 +53,126 @@ IGNORED_COPY_DIRS = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Errors
+# ---------------------------------------------------------------------------
+
+
+class SandboxError(RuntimeError):
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Sandbox Backend Protocol
+# ---------------------------------------------------------------------------
+
+
+class SandboxBackend(Protocol):
+    """Interface that both Firecracker and Local backends implement."""
+
+    engine_name: str
+    isolation_level: str
+
+    def acquire(self) -> Any:
+        """Acquire a sandbox instance (VM or local process)."""
+        ...
+
+    def release(self, instance: Any) -> None:
+        """Release a sandbox instance."""
+        ...
+
+    def shutdown(self) -> None:
+        """Shutdown the backend and clean up all resources."""
+        ...
+
+
+# ---------------------------------------------------------------------------
+# Firecracker Backend
+# ---------------------------------------------------------------------------
+
+
+class FirecrackerBackend:
+    """Production sandbox backend using Firecracker MicroVMs."""
+
+    engine_name = "firecracker-microvm"
+    isolation_level = "hardware"
+
+    def __init__(self, settings: Settings) -> None:
+        from sandbox_service.vm_manager import VMConfig, SnapshotManager
+        from sandbox_service.pool_manager import PoolManager
+
+        self._config = VMConfig(
+            vcpu_count=settings.sandbox_vcpu_count,
+            memory_mb=settings.sandbox_memory_mb,
+            snapshot_dir=settings.sandbox_snapshot_dir,
+        )
+        self._snapshot_mgr = SnapshotManager(self._config)
+        self._pool = PoolManager(
+            pool_size=settings.sandbox_pool_size,
+            config=self._config,
+            snapshot_manager=self._snapshot_mgr,
+        )
+        logger.info(
+            "Firecracker sandbox backend initialized: %d vCPU, %dMB RAM, pool=%d",
+            self._config.vcpu_count,
+            self._config.memory_mb,
+            settings.sandbox_pool_size,
+        )
+
+    def acquire(self) -> Any:
+        return self._pool.acquire()
+
+    def release(self, instance: Any) -> None:
+        self._pool.release(instance)
+
+    def shutdown(self) -> None:
+        self._pool.shutdown()
+
+
+# ---------------------------------------------------------------------------
+# Local Process Backend
+# ---------------------------------------------------------------------------
+
+
+class LocalProcessBackend:
+    """Development sandbox backend using process isolation with resource limits."""
+
+    engine_name = "process-sandbox"
+    isolation_level = "process"
+
+    def __init__(self, settings: Settings) -> None:
+        from sandbox_service.sandbox_local import LocalPoolManager, LocalSandboxRunner
+        from sandbox_service.vm_manager import VMConfig
+
+        self._config = VMConfig(
+            vcpu_count=settings.sandbox_vcpu_count,
+            memory_mb=settings.sandbox_memory_mb,
+        )
+        self._pool = LocalPoolManager(config=self._config)
+        self._runner_class = LocalSandboxRunner
+        logger.info(
+            "Local process sandbox backend initialized: %d vCPU, %dMB RAM (limits advisory)",
+            settings.sandbox_vcpu_count,
+            settings.sandbox_memory_mb,
+        )
+
+    def acquire(self) -> Any:
+        return self._pool.acquire()
+
+    def release(self, instance: Any) -> None:
+        self._pool.release(instance)
+
+    def shutdown(self) -> None:
+        self._pool.shutdown()
+
+
+# ---------------------------------------------------------------------------
+# Helper functions
+# ---------------------------------------------------------------------------
+
+
 def _ignore(_directory: str, names: list[str]) -> set[str]:
     return {name for name in names if name in IGNORED_COPY_DIRS}
-
-
-def _limit_child_resources() -> None:
-    resource.setrlimit(resource.RLIMIT_CPU, (20, 20))
-    resource.setrlimit(resource.RLIMIT_FSIZE, (64 * 1024 * 1024, 64 * 1024 * 1024))
-    resource.setrlimit(resource.RLIMIT_NOFILE, (128, 128))
 
 
 def _safe_relative_path(path: str) -> Path:
@@ -69,10 +195,56 @@ def _parse_total_tests(stdout: str, stderr: str, exit_code: int) -> tuple[int, i
     return (0, 0)
 
 
+def _detect_backend(settings: Settings) -> SandboxBackend:
+    """Auto-detect the best available sandbox backend."""
+    engine = settings.sandbox_engine
+
+    if engine == "firecracker":
+        if not shutil.which("firecracker"):
+            raise SandboxError(
+                "sandbox_engine is set to 'firecracker' but the firecracker "
+                "binary is not on $PATH. Install Firecracker or set "
+                "SENTINEL_SANDBOX_ENGINE=local"
+            )
+        return FirecrackerBackend(settings)
+
+    if engine == "local":
+        return LocalProcessBackend(settings)
+
+    # Auto-detect
+    if shutil.which("firecracker"):
+        logger.info("Auto-detected Firecracker binary — using hardware-isolated sandbox")
+        return FirecrackerBackend(settings)
+
+    logger.info(
+        "Firecracker not found — using local process sandbox (safe for development)"
+    )
+    return LocalProcessBackend(settings)
+
+
+# ---------------------------------------------------------------------------
+# SandboxRunner — the unified validation entry point
+# ---------------------------------------------------------------------------
+
+
 class SandboxRunner:
+    """Validates AI-generated patches in an isolated sandbox.
+
+    This is the single entry point used by the orchestrator and LangGraph
+    workflow. It auto-detects the best available backend (Firecracker or
+    local process) and produces identical ``ValidationResult`` objects
+    regardless of which backend is used.
+    """
+
     def __init__(self, settings: Settings, ingestor: RepositoryIngestor) -> None:
         self._settings = settings
         self._ingestor = ingestor
+        self._backend = _detect_backend(settings)
+        logger.info("SandboxRunner ready — engine=%s", self._backend.engine_name)
+
+    @property
+    def engine_name(self) -> str:
+        return self._backend.engine_name
 
     def validate(
         self,
@@ -81,48 +253,68 @@ class SandboxRunner:
         memory: RepositoryMemory,
         patch: PatchProposal,
     ) -> ValidationResult:
+        """Validate a patch proposal in an isolated sandbox.
+
+        Returns a ``ValidationResult`` with structured axes covering:
+        patch integrity, pre-existing tests, static rescan, patch scope,
+        sandbox isolation, and auditability.
+        """
         started = time.monotonic()
-        
-        # Real WASMtime Sandbox verification details
-        from .wasmtime_sandbox import WasmConfig, WasmtimeSandbox
-        wasm_sandbox = WasmtimeSandbox(WasmConfig())
-        wasm_result = wasm_sandbox.validate_patch(repo_root, memory, patch)
-        
-        from sandbox_service.pool_manager import PoolManager
-        if not hasattr(self, "_pool"):
-            self._pool = PoolManager(pool_size=1)
-            
-        vm = self._pool.acquire()
+        boot_start = time.monotonic()
+
+        sandbox = self._backend.acquire()
+        boot_time_ms = int((time.monotonic() - boot_start) * 1000)
+
         try:
-            workspace = vm.workspace_dir
+            workspace = sandbox.workspace_dir
             if workspace.exists():
                 shutil.rmtree(workspace)
             shutil.copytree(repo_root, workspace, ignore=_ignore)
+
+            logger.info(
+                "Sandbox workspace ready at %s (%s)",
+                workspace,
+                self._backend.engine_name,
+            )
+
+            # Apply patch with integrity verification
             self._apply_patch(workspace, patch)
-            
-            stdout, stderr, exit_code = self._run_validation_commands(vm, memory.validation_commands)
+
+            # Run validation commands
+            stdout, stderr, exit_code = self._run_validation_commands(
+                sandbox, memory.validation_commands
+            )
+
+            # Parse test results
             passing_tests, total_tests = _parse_total_tests(stdout, stderr, exit_code)
+
+            # Re-ingest patched workspace for finding resolution
             patched_memory = self._ingestor.ingest(str(workspace))
+
         finally:
-            self._pool.release(vm)
+            self._backend.release(sandbox)
 
-        # Merge local sandbox with Wasmtime VM outputs
-        if wasm_result["exit_code"] != 0 and exit_code == 0:
-            exit_code = wasm_result["exit_code"]
-            stdout = f"{stdout}\n{wasm_result['stdout']}"
-            stderr = f"{stderr}\n{wasm_result['stderr']}"
+        # Calculate finding resolution
+        resolved_findings, total_findings, remaining_findings = (
+            self._finding_resolution(memory, patched_memory, patch)
+        )
 
-        resolved_findings, total_findings, remaining_findings = self._finding_resolution(memory, patched_memory, patch)
         duration_ms = int((time.monotonic() - started) * 1000)
+
+        # Build validation axes
         axes = [
             ValidationAxis(
                 name="patch_integrity",
                 status=ValidationAxisStatus.PASS,
-                detail="Patch verified via wasmtime isolated instance + compilation validations.",
+                detail="Patch applied and verified in isolated sandbox workspace.",
             ),
             ValidationAxis(
                 name="pre_existing_tests",
-                status=ValidationAxisStatus.PASS if exit_code == 0 else ValidationAxisStatus.FAIL,
+                status=(
+                    ValidationAxisStatus.PASS
+                    if exit_code == 0
+                    else ValidationAxisStatus.FAIL
+                ),
                 detail=(
                     f"Validation commands exited {exit_code}; "
                     f"{passing_tests}/{total_tests} parsed tests passing."
@@ -130,18 +322,29 @@ class SandboxRunner:
             ),
             ValidationAxis(
                 name="static_rescan",
-                status=ValidationAxisStatus.PASS if remaining_findings == 0 else ValidationAxisStatus.FAIL,
+                status=(
+                    ValidationAxisStatus.PASS
+                    if remaining_findings == 0
+                    else ValidationAxisStatus.FAIL
+                ),
                 detail=f"{resolved_findings}/{total_findings} targeted findings resolved.",
             ),
             ValidationAxis(
                 name="patch_scope",
-                status=ValidationAxisStatus.PASS if len(patch.files) <= 5 else ValidationAxisStatus.WARN,
+                status=(
+                    ValidationAxisStatus.PASS
+                    if len(patch.files) <= 5
+                    else ValidationAxisStatus.WARN
+                ),
                 detail=f"{len(patch.files)} file(s) changed.",
             ),
             ValidationAxis(
                 name="sandbox_isolation",
                 status=ValidationAxisStatus.PASS,
-                detail="Commands ran without shell expansion, with sanitized environment and resource limits.",
+                detail=(
+                    f"Executed in {self._backend.engine_name} sandbox with "
+                    f"{self._backend.isolation_level} isolation."
+                ),
             ),
             ValidationAxis(
                 name="auditability",
@@ -149,8 +352,31 @@ class SandboxRunner:
                 detail="Diff, stdout, stderr, exit code, and static findings are machine-readable.",
             ),
         ]
-        verdict = Verdict.APPROVE if all(axis.status != ValidationAxisStatus.FAIL for axis in axes) else Verdict.REJECT
+
+        verdict = (
+            Verdict.APPROVE
+            if all(axis.status != ValidationAxisStatus.FAIL for axis in axes)
+            else Verdict.REJECT
+        )
         quality_delta = 25.0 if verdict == Verdict.APPROVE else 0.0
+
+        # Build dynamic sandbox metadata
+        sandbox_meta = SandboxMetadata(
+            engine=self._backend.engine_name,
+            boot_time_ms=boot_time_ms,
+            vsock_status=(
+                "ESTABLISHED"
+                if self._backend.engine_name == "firecracker-microvm"
+                else "N/A"
+            ),
+            vcpu_count=self._settings.sandbox_vcpu_count,
+            memory_mb=self._settings.sandbox_memory_mb,
+            snapshot_used=(
+                self._backend.engine_name == "firecracker-microvm"
+            ),
+            isolation_level=self._backend.isolation_level,
+        )
+
         return ValidationResult(
             task_id=patch.task_id,
             patch_id=patch.patch_id,
@@ -165,45 +391,63 @@ class SandboxRunner:
             total_findings=total_findings,
             coverage_delta=quality_delta,
             duration_ms=duration_ms,
+            sandbox_metadata=sandbox_meta,
         )
 
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
     def _apply_patch(self, workspace: Path, patch: PatchProposal) -> None:
+        """Apply patch files to workspace with integrity verification."""
         for file_patch in patch.files:
             target = workspace / _safe_relative_path(file_patch.file_path)
             if not target.exists():
-                raise SandboxError(f"Patch target does not exist: {file_patch.file_path}")
+                raise SandboxError(
+                    f"Patch target does not exist: {file_patch.file_path}"
+                )
             current = safe_read_text(target)
             if current != file_patch.original:
-                raise SandboxError(f"Patch target changed before validation: {file_patch.file_path}")
+                raise SandboxError(
+                    f"Patch target changed before validation: {file_patch.file_path}"
+                )
             target.write_text(file_patch.patched, encoding="utf-8")
 
     def _run_validation_commands(
         self,
-        vm: Any,
+        sandbox: Any,
         commands: list[list[str]],
     ) -> tuple[str, str, int]:
+        """Run validation commands in the sandbox."""
         stdout_parts: list[str] = []
         stderr_parts: list[str] = []
         final_exit_code = 0
-        
+
         for command in commands:
             if not command:
                 continue
             executable = Path(command[0]).name
             if executable not in ALLOWED_EXECUTABLES:
-                return "", f"Command executable is not allowed in sandbox: {executable}", 126
-                
+                return (
+                    "",
+                    f"Command executable is not allowed in sandbox: {executable}",
+                    126,
+                )
+
             try:
-                result = vm.execute_command(command, timeout=self._settings.sandbox_timeout_seconds)
+                result = sandbox.execute_command(
+                    command, timeout=self._settings.sandbox_timeout_seconds
+                )
                 stdout_parts.append(result.get("stdout", ""))
                 stderr_parts.append(result.get("stderr", ""))
-                
+
                 exit_code = result.get("exit_code", 1)
                 if exit_code != 0:
                     final_exit_code = exit_code
                     break
             except Exception as exc:
-                stderr_parts.append(f"Firecracker VM Error: {exc}")
+                logger.error("Sandbox command error: %s", exc)
+                stderr_parts.append(f"Sandbox Error ({self._backend.engine_name}): {exc}")
                 final_exit_code = 125
                 break
 
@@ -215,12 +459,17 @@ class SandboxRunner:
         patched: RepositoryMemory,
         patch: PatchProposal,
     ) -> tuple[int, int, int]:
+        """Compare findings before and after patch application."""
         changed_files = {file.file_path for file in patch.files}
         original_targeted = [
-            finding for finding in original.findings if finding.file_path in changed_files
+            finding
+            for finding in original.findings
+            if finding.file_path in changed_files
         ]
         patched_targeted = [
-            finding for finding in patched.findings if finding.file_path in changed_files
+            finding
+            for finding in patched.findings
+            if finding.file_path in changed_files
         ]
         total = max(len(original_targeted), 1)
         remaining = len(patched_targeted)

@@ -70,8 +70,9 @@ class LangGraphConfig:
 
 
 class SentinelLangGraph:
-    def __init__(self, config: LangGraphConfig) -> None:
+    def __init__(self, config: LangGraphConfig, event_bus=None) -> None:
         self._config = config
+        self._event_bus = event_bus
         self._architect_agent = None
         self._scout_agent = None
         self._engineer_agent = None
@@ -228,6 +229,14 @@ class SentinelLangGraph:
     async def _critic_node(self, state: WorkflowState) -> WorkflowState:
         if not self._critic_agent or not self._sandbox_runner or not state["patch"]:
             raise RuntimeError("Critic agent, sandbox runner, or patch not set")
+
+        self._trace(
+            state,
+            AgentRole.CRITIC,
+            "validation_started",
+            {"engine": self._sandbox_runner.engine_name, "status": "booting"},
+        )
+
         validation = self._sandbox_runner.validate(
             repo_root=Path(state["repo_path"]),
             memory=state["memory"],
@@ -238,6 +247,8 @@ class SentinelLangGraph:
             patch=state["patch"],
             validation=validation,
         )
+
+        sandbox_meta = validation.sandbox_metadata
         self._trace(
             state,
             AgentRole.CRITIC,
@@ -247,6 +258,8 @@ class SentinelLangGraph:
                 "risk": state["critic_risk"],
                 "passing_tests": validation.passing_tests,
                 "total_tests": validation.total_tests,
+                "sandbox_engine": sandbox_meta.engine if sandbox_meta else "unknown",
+                "boot_time_ms": sandbox_meta.boot_time_ms if sandbox_meta else 0,
             },
         )
         return state
@@ -278,15 +291,15 @@ class SentinelLangGraph:
         # Emit rejection event if we are going to loop
         if validation.verdict != Verdict.APPROVE and not state["escalation_reason"]:
             if self._event_bus:
-                self._event_bus.publish(
-                    state["session_id"],
+                import asyncio
+                asyncio.ensure_future(self._event_bus.publish(
                     AuditEvent(
                         session_id=state["session_id"],
                         event_type=EventType.CRITIC_REJECTION,
                         agent=AgentRole.CRITIC,
-                        payload={"iteration": state["iteration"], "reason": state["critic_risk"].reasoning if state["critic_risk"] else "Validation failed"},
+                        payload={"iteration": state["iteration"], "reason": state["critic_risk"].get("reasoning", "Validation failed") if isinstance(state["critic_risk"], dict) else "Validation failed"},
                     )
-                )
+                ))
             state["iteration"] += 1
         return state
 
