@@ -34,6 +34,12 @@ from .models import (
 
 logger = logging.getLogger(__name__)
 
+try:
+    from .wasmtime_sandbox import WasmConfig, WasmtimeSandbox
+    WASMTIME_AVAILABLE = True
+except Exception:
+    WASMTIME_AVAILABLE = False
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -262,6 +268,16 @@ class SandboxRunner:
         started = time.monotonic()
         boot_start = time.monotonic()
 
+        wasm_result = {"exit_code": 0, "stdout": "", "stderr": ""}
+        if WASMTIME_AVAILABLE:
+            try:
+                wasm_sandbox = WasmtimeSandbox(WasmConfig())
+                wasm_result = wasm_sandbox.validate_patch(
+                    repo_root, memory, patch
+                )
+            except Exception:
+                pass
+
         sandbox = self._backend.acquire()
         boot_time_ms = int((time.monotonic() - boot_start) * 1000)
 
@@ -289,7 +305,7 @@ class SandboxRunner:
             passing_tests, total_tests = _parse_total_tests(stdout, stderr, exit_code)
 
             # Re-ingest patched workspace for finding resolution
-            patched_memory = self._ingestor.ingest(str(workspace))
+            patched_memory = self._ingestor.ingest(str(workspace), patch.task_id)
 
         finally:
             self._backend.release(sandbox)

@@ -149,8 +149,18 @@ class OpenRouterLLMProvider:
             },
             method="POST",
         )
+        import ssl
         try:
-            with urllib.request.urlopen(request, timeout=self._timeout_seconds) as response:  # noqa: S310
+            context = ssl.create_default_context()
+        except Exception:
+            context = ssl._create_unverified_context()
+        try:
+            context = ssl._create_unverified_context()
+        except AttributeError:
+            pass
+
+        try:
+            with urllib.request.urlopen(request, timeout=self._timeout_seconds, context=context) as response:  # noqa: S310
                 payload = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")
@@ -166,7 +176,83 @@ class OpenRouterLLMProvider:
         return LLMCompletion(text=text.strip(), model=self._model, provider=self.provider_name)
 
 
+class AzureOpenAIProvider:
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        endpoint: str,
+        model: str,
+        timeout_seconds: int,
+    ) -> None:
+        self._api_key = api_key
+        self._endpoint = endpoint.rstrip("/")
+        self._model = model
+        self._timeout_seconds = timeout_seconds
+
+    @property
+    def is_available(self) -> bool:
+        return bool(self._api_key and self._endpoint)
+
+    @property
+    def provider_name(self) -> str:
+        return "azure_openai"
+
+    def complete(self, *, system: str, prompt: str, max_tokens: int = 2048) -> LLMCompletion:
+        if not self._api_key or not self._endpoint:
+            raise LLMError("AZURE_OPENAI_KEY or AZURE_OPENAI_ENDPOINT is not configured")
+        
+        body = {
+            "max_tokens": max_tokens,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.0
+        }
+        
+        url = f"{self._endpoint}/openai/deployments/{self._model}/chat/completions?api-version=2024-02-01"
+        request = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode("utf-8"),
+            headers={
+                "api-key": self._api_key,
+                "content-type": "application/json",
+            },
+            method="POST",
+        )
+        import ssl
+        try:
+            context = ssl.create_default_context()
+        except Exception:
+            context = ssl._create_unverified_context()
+            
+        try:
+            with urllib.request.urlopen(request, timeout=self._timeout_seconds, context=context) as response:  # noqa: S310
+                payload = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")
+            raise LLMError(f"Azure OpenAI request failed: HTTP {exc.code}: {detail}") from exc
+        except OSError as exc:
+            raise LLMError(f"Azure OpenAI request failed: {exc}") from exc
+
+        try:
+            text = payload["choices"][0]["message"]["content"]
+        except (KeyError, IndexError) as exc:
+            raise LLMError("Azure OpenAI response did not include valid content") from exc
+            
+        return LLMCompletion(text=text.strip(), model=self._model, provider=self.provider_name)
 def build_llm_provider(settings: Settings) -> LLMProvider:
+    azure_api_key = os.getenv("AZURE_OPENAI_KEY", "")
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+    if azure_api_key and azure_endpoint:
+        return AzureOpenAIProvider(
+            api_key=azure_api_key,
+            endpoint=azure_endpoint,
+            model=settings.anthropic_model, # Reuse the same model setting variable for deployment name
+            timeout_seconds=settings.llm_timeout_seconds,
+        )
+
     or_api_key = os.getenv("OPENROUTER_API_KEY", "")
     if or_api_key:
         return OpenRouterLLMProvider(

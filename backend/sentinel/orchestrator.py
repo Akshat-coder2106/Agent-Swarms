@@ -139,7 +139,7 @@ class SentinelOrchestrator:
         try:
             session.status = SessionStatus.RUNNING
             await self._save(session)
-            memory = await asyncio.to_thread(self._ingestor.ingest, session.repo_path)
+            memory = self._ingestor.ingest(session.repo_path, session.session_id)
             session.memory = memory
             await self._emit(
                 session,
@@ -243,6 +243,7 @@ class SentinelOrchestrator:
                     patch = self._engineer.defend_patch(original=original_content, patch=patch, challenges=challenges)
 
                 except PatchGenerationError as exc:
+                    print(f"PIPELINE ERROR: {exc}", flush=True)
                     await self._escalate(
                         session=session,
                         task_id=task.task_id,
@@ -375,6 +376,7 @@ class SentinelOrchestrator:
             await self._save(session)
             return session
         except Exception as exc:
+            print(f"PIPELINE ERROR: {exc}", flush=True)
             session.status = SessionStatus.FAILED
             await self._emit(
                 session,

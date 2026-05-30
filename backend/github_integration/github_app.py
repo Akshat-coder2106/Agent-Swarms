@@ -171,4 +171,49 @@ class GitHubAppClient:
             if pr_resp.status_code != 201:
                 raise GitHubAppError(f"Failed to create PR: {pr_resp.text}")
 
-            return pr_resp.json()["html_url"]
+            pr_data = pr_resp.json()
+            await self.post_review_comments(client, owner, repo, pr_data["number"], new_commit_sha, session, patch, headers)
+
+            return pr_data["html_url"]
+
+    async def post_review_comments(
+        self,
+        client: httpx.AsyncClient,
+        owner: str,
+        repo: str,
+        pr_number: int,
+        commit_id: str,
+        session: AuditSession,
+        patch: PatchProposal,
+        headers: dict,
+    ) -> None:
+        """Post inline review comments for the generated patch."""
+        # Find the task and its primary finding
+        task = next((t for t in getattr(session, "tasks", []) if t.task_id == patch.task_id), None)
+        if not task or not task.finding_ids:
+            return
+            
+        finding = next((f for f in session.findings if f.finding_id == task.finding_ids[0]), None)
+        if not finding:
+            return
+
+        body = {
+            "commit_id": commit_id,
+            "event": "COMMENT",
+            "comments": [
+                {
+                    "path": finding.file_path,
+                    "line": finding.line,
+                    "body": f"🛡️ Sentinel: {finding.title} (CWE-{finding.cwe or 'Unknown'}) — autonomous patch applied above.",
+                }
+            ]
+        }
+
+        resp = await client.post(
+            f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}/reviews",
+            headers=headers,
+            json=body,
+        )
+        if resp.status_code not in (200, 201):
+            # We don't raise here so the PR still succeeds even if comments fail
+            print(f"Failed to post PR review comment: {resp.text}", flush=True)

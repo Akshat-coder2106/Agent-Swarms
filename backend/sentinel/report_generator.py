@@ -20,16 +20,21 @@ def generate_markdown_report(session: AuditSession) -> str:
     lines.append("")
     
     lines.append("## Findings & OWASP Mapping")
-    lines.append("| ID | Severity | Category | CWE | OWASP Top 10 | File |")
-    lines.append("|---|---|---|---|---|---|")
+    lines.append("| ID | Severity | Category | CWE | OWASP Top 10 | NIST SP 800-53 | File |")
+    lines.append("|---|---|---|---|---|---|---|")
     
     for finding in session.findings:
         owasp = "A03:2021-Injection" if finding.category == FindingCategory.INJECTION else \
                 "A08:2021-Software and Data Integrity Failures" if finding.category == FindingCategory.DESERIALIZATION else \
                 "A07:2021-Identification and Authentication Failures" if finding.category == FindingCategory.SECRET else \
                 "A01:2021-Broken Access Control"
+                
+        nist = "SI-10 (Information Input Validation)" if finding.category == FindingCategory.INJECTION else \
+               "SI-7 (Software, Firmware, and Information Integrity)" if finding.category == FindingCategory.DESERIALIZATION else \
+               "IA-2 (Identification and Authentication)" if finding.category == FindingCategory.SECRET else \
+               "AC-3 (Access Enforcement)"
         
-        lines.append(f"| `{finding.rule_id}` | {finding.severity} | {finding.category} | {finding.cwe} | {owasp} | `{finding.file_path}:{finding.line}` |")
+        lines.append(f"| `{finding.rule_id}` | {finding.severity} | {finding.category} | {finding.cwe} | {owasp} | {nist} | `{finding.file_path}:{finding.line}` |")
         
     lines.append("")
     

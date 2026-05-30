@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import difflib
+import json
 import re
 from pathlib import Path
 
@@ -80,6 +81,11 @@ class ScoutAgent:
             for chunk in memory.chunks
             if chunk.file_path == finding.file_path and chunk not in semantic_chunks
         ][:2]
+        cve_context = None
+        if finding.cwe:
+            from .cve_scanner import CVEScanner, OSVConfig
+            cve_context = CVEScanner(OSVConfig()).lookup_cwe(finding.cwe)
+            
         return EvidencePackage(
             task_id=task.task_id,
             finding=finding,
@@ -87,6 +93,7 @@ class ScoutAgent:
             related_symbols=index.symbols_for_file(finding.file_path),
             graph_neighbors=index.graph_neighbors_for_file(finding.file_path),
             static_scan_count=len(memory.findings),
+            cve_context=cve_context,
         )
 
 
@@ -105,28 +112,38 @@ class EngineerAgent:
         evidence: EvidencePackage,
         iteration: int,
         operator_hint: str | None = None,
+        failure_reason: str | None = None,
     ) -> PatchProposal:
         file_path = repo_root / evidence.finding.file_path
         original = safe_read_text(file_path)
-        patched = self._patch_content(original, evidence.finding, operator_hint=operator_hint)
-        rationale = self._rationale(evidence.finding, operator_hint=operator_hint)
+        patched = original
+        rationale = ""
+        confidence = 0.0
+        generated_by = ""
         
-        # Override confidence to 1.0 for Merge Conflicts so they are always approved
-        if evidence.finding.rule_id == "git.merge_conflict":
-            confidence = 1.0
-        else:
-            confidence = 0.90 if evidence.finding.category == FindingCategory.INJECTION else 0.88
-            
-        generated_by = "deterministic-rule"
-        if patched == original and self._llm_provider and self._llm_provider.is_available:
+        # 1. Try LLM first if available
+        if self._llm_provider and self._llm_provider.is_available:
             try:
-                llm_patch = self._patch_with_llm(original=original, evidence=evidence, operator_hint=operator_hint)
+                llm_patch = self._patch_with_llm(original=original, evidence=evidence, operator_hint=operator_hint, failure_reason=failure_reason)
                 patched = llm_patch["patched"]
                 rationale = llm_patch["rationale"]
                 confidence = llm_patch["confidence"]
                 generated_by = f"llm:{self._llm_provider.provider_name}"
             except PatchGenerationError:
-                pass  # LLM failed, let the `patched == original` check escalate it
+                pass  # Fall back to deterministic
+                
+        # 2. Fall back to deterministic if LLM failed or wasn't available
+        if patched == original:
+            patched = self._patch_content(original, evidence.finding, operator_hint=operator_hint)
+            if patched != original:
+                rationale = self._rationale(evidence.finding, operator_hint=operator_hint)
+                if evidence.finding.rule_id == "git.merge_conflict":
+                    confidence = 1.0
+                else:
+                    confidence = 0.90 if evidence.finding.category == FindingCategory.INJECTION else 0.88
+                generated_by = "deterministic-rule"
+
+        # 3. If both failed, escalate
         if patched == original:
             raise PatchGenerationError(
                 f"No deterministic or configured LLM patch available for {evidence.finding.rule_id}"
@@ -368,8 +385,9 @@ class EngineerAgent:
         *,
         original: str,
         evidence: EvidencePackage,
-        operator_hint: str | None,
-    ) -> dict[str, str | float]:
+        operator_hint: str | None = None,
+        failure_reason: str | None = None,
+    ) -> dict[str, Any]:
         if not self._llm_provider:
             raise PatchGenerationError("LLM provider is not configured")
         system = (
@@ -392,7 +410,8 @@ class EngineerAgent:
             f"File: {evidence.finding.file_path}:{evidence.finding.line}\n"
             f"Snippet: {evidence.finding.snippet}\n"
             f"Remediation: {evidence.finding.remediation}\n"
-            f"Operator hint: {operator_hint or 'none'}\n\n"
+            f"Operator hint: {operator_hint or 'none'}\n"
+            f"{f'Failure from previous attempt: {failure_reason}' if failure_reason else ''}\n\n"
             "Return JSON with keys patched_file, rationale, confidence. "
             "patched_file must contain the complete corrected file.\n\n"
             f"Original file:\n```\n{original}\n```"
@@ -400,12 +419,46 @@ class EngineerAgent:
         try:
             completion = self._llm_provider.complete(system=system, prompt=prompt, max_tokens=8192)
             print(f'DEBUG: LLM Patch Output: {completion.text}', flush=True)
-            payload = extract_json_object(completion.text)
+            text = completion.text.strip()
+            if text.startswith("```json"):
+                text = text[7:]
+            elif text.startswith("```"):
+                text = text[3:]
+            if text.endswith("```"):
+                text = text[:-3]
+            text = text.strip()
+            
+            try:
+                payload = json.loads(text)
+            except json.JSONDecodeError as exc:
+                raise PatchGenerationError(str(exc)) from exc
         except LLMError as exc:
             raise PatchGenerationError(str(exc)) from exc
         patched = str(payload.get("patched_file", ""))
         rationale = str(payload.get("rationale", "LLM generated a security remediation patch."))
-        confidence = float(payload.get("confidence", 0.72))
+        
+        raw_conf = payload.get("confidence", 0.72)
+        if isinstance(raw_conf, str):
+            raw_conf = raw_conf.lower()
+            if "high" in raw_conf:
+                confidence = 0.90
+            elif "low" in raw_conf:
+                confidence = 0.40
+            elif "medium" in raw_conf:
+                confidence = 0.70
+            else:
+                try:
+                    confidence = float(raw_conf.replace('%', '').strip())
+                    if confidence > 1.0:
+                        confidence /= 100.0
+                except ValueError:
+                    confidence = 0.72
+        else:
+            try:
+                confidence = float(raw_conf)
+            except (ValueError, TypeError):
+                confidence = 0.72
+                
         if not patched.strip():
             raise PatchGenerationError("LLM response did not include patched_file")
         if original.endswith("\n") and not patched.endswith("\n"):

@@ -323,3 +323,32 @@ class CVEScanner:
             affected_package="",
             affected_version="",
         )
+
+    def lookup_cwe(self, cwe_id: str) -> dict | None:
+        """Query NVD API for CWE details."""
+        import urllib.request
+        import urllib.error
+        import json
+
+        # Ensure cwe_id is formatted correctly (e.g. CWE-89)
+        if str(cwe_id).isdigit():
+            cwe_id = f"CWE-{cwe_id}"
+
+        url = f"https://services.nvd.nist.gov/rest/json/cves/2.0?cweId={cwe_id}&resultsPerPage=1"
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Sentinel/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read().decode("utf-8"))
+                vulns = data.get("vulnerabilities", [])
+                if vulns:
+                    raw = vulns[0].get("cve", {})
+                    metrics = raw.get("metrics", {}).get("cvssMetricV31", [{}])[0].get("cvssData", {})
+                    return {
+                        "cve_id": raw.get("id", cwe_id),
+                        "cvss_score": metrics.get("baseScore", "N/A"),
+                        "severity": metrics.get("baseSeverity", "UNKNOWN"),
+                        "summary": next((d["value"] for d in raw.get("descriptions", []) if d.get("lang") == "en"), "No description available"),
+                    }
+        except Exception:
+            pass
+        return None

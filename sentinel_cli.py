@@ -3,7 +3,7 @@ import asyncio
 import os
 import sys
 
-from sentinel.config import Settings
+from sentinel.config import load_settings
 from sentinel.github_integration import create_github_pr, GitHubIntegrationError
 from sentinel.models import AuditRequest, SessionStatus, Verdict, FindingSeverity
 from sentinel.orchestrator import SentinelOrchestrator
@@ -15,7 +15,7 @@ async def main():
     parser.add_argument("--severity", default="HIGH")
     args = parser.parse_args()
 
-    settings = Settings()
+    settings = load_settings()
     
     auto_pr = args.auto_pr.lower() in ("true", "1", "yes")
     github_token = os.environ.get("GITHUB_TOKEN")

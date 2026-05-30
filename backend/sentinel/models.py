@@ -227,6 +227,7 @@ class EvidencePackage(BaseModel):
     related_symbols: list[CodeSymbol]
     graph_neighbors: list[CodeGraphEdge]
     static_scan_count: int
+    cve_context: dict | None = None
 
 
 class FilePatch(BaseModel):

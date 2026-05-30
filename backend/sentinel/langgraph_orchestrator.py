@@ -203,11 +203,17 @@ class SentinelLangGraph:
     async def _engineer_node(self, state: WorkflowState) -> WorkflowState:
         if not self._engineer_agent or not state["evidence"]:
             raise RuntimeError("Engineer agent or evidence not set")
+        failure_reason = None
+        if state["iteration"] > 1 and state.get("critic_risk"):
+            risk = state["critic_risk"]
+            failure_reason = risk.get("reasoning", "Validation failed in sandbox") if isinstance(risk, dict) else str(risk)
+
         try:
             patch = self._engineer_agent.propose_patch(
                 repo_root=Path(state["repo_path"]),
                 evidence=state["evidence"],
                 iteration=state["iteration"],
+                failure_reason=failure_reason,
             )
             state["patch"] = patch
             self._trace(

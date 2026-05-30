@@ -40,6 +40,23 @@ jobs:
 
 *(Note: You will still be charged by Anthropic for LLM token usage based on the size of your repository).*
 
+### Base Detection Capabilities
+Sentinel ships with 11 deterministic detection rules and additionally offloads scanning to external providers if installed:
+
+| Rule ID | Language | CWE | Severity | Description |
+|---|---|---|---|---|
+| `python.sql_injection.fstring` | Python | CWE-89 | HIGH | SQL Injection via f-strings |
+| `python.unsafe_execution` | Python | CWE-94 | CRITICAL | Code Injection via `eval()`/`exec()` |
+| `python.path_traversal.user_controlled_path` | Python | CWE-22 | HIGH | Path Traversal using unsanitized variables |
+| `python.insecure_deserialization.pickle` | Python | CWE-502 | CRITICAL | Deserialization of untrusted data via `pickle` |
+| `python.yaml_load` | Python | CWE-502 | HIGH | Unsafe YAML deserialization via `yaml.load()` |
+| `python.weak_random.security` | Python | CWE-338 | MEDIUM | Insecure PRNG usage for security operations |
+| `javascript.sql_injection.template` | JavaScript | CWE-89 | HIGH | SQL Injection via template literals |
+| `javascript.xss.dom_sink` | JavaScript | CWE-79 | HIGH | Cross-Site Scripting via `innerHTML` / DOM manipulation |
+| `javascript.unsafe_eval` | JavaScript | CWE-94 | CRITICAL | Code Injection via `eval()` |
+| `secrets.hardcoded_credential` | Multi | CWE-798 | CRITICAL | Hardcoded Secrets / Credentials |
+| `git.merge_conflict` | Multi | CWE-116 | LOW | Leftover Git Merge Conflict Markers |
+
 ## Architecture 
 
 ```mermaid

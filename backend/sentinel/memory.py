@@ -54,6 +54,8 @@ IGNORED_DIRS = {
     ".venv",
     "venv",
     ".next",
+    "sentinel_cli.py",
+    "sentinel",  # Never scan Sentinel's own backend code
 }
 
 
@@ -439,7 +441,16 @@ class RepositoryIngestor:
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
 
-    def ingest(self, requested_path: str) -> RepositoryMemory:
+    def ingest(self, requested_path: str, session_id: str | None = None) -> RepositoryMemory:
+        import shutil
+        from .semgrep_scanner import SemgrepConfig, SemgrepScanner
+        from .trivy_scanner import TrivyConfig, TrivyScanner
+        from .gitleaks_scanner import GitleaksConfig, GitleaksScanner
+        from .checkov_scanner import CheckovConfig, CheckovScanner
+
+        if session_id is None:
+            session_id = "default-session"
+
         root = resolve_repo_path(self._settings, requested_path)
         chunks: list[CodeChunk] = []
         symbols: list[CodeSymbol] = []
@@ -457,6 +468,15 @@ class RepositoryIngestor:
                 edges.extend(python_edges)
             elif path.suffix in {".js", ".jsx", ".ts", ".tsx"}:
                 symbols.extend(extract_text_symbols(root, path, text))
+
+        if shutil.which("semgrep"):
+            findings += SemgrepScanner(SemgrepConfig()).scan_repository(str(root), session_id)
+        if shutil.which("gitleaks"):
+            findings += GitleaksScanner(GitleaksConfig()).scan_repository(str(root), session_id)
+        if shutil.which("trivy"):
+            findings += TrivyScanner(TrivyConfig()).scan_repository(str(root), session_id)
+        if shutil.which("checkov") and any((root / d).exists() for d in ["k8s", "helm", "terraform"]):
+            findings += CheckovScanner(CheckovConfig()).scan_repository(str(root), session_id)
 
         memory = RepositoryMemory(
             root_path=str(root),

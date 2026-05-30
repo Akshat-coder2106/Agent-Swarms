@@ -360,6 +360,24 @@ async def create_pr(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@app.post("/api/sessions/{session_id}/export/azure")
+async def export_to_azure(
+    session_id: str,
+    _principal: Annotated[Principal, Depends(require_auth)],
+) -> dict:
+    try:
+        from .azure_integration import export_to_azure_devops, AzureIntegrationError
+        session = await orchestrator.get_session(session_id)
+        result = await export_to_azure_devops(session)
+        return result
+    except SessionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Session not found") from exc
+    except AzureIntegrationError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @app.get("/api/metrics")
 async def get_metrics_summary(_principal: Annotated[Principal, Depends(require_auth)]) -> dict:
     sessions = await orchestrator._store.list()
