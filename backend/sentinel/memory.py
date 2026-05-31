@@ -443,10 +443,11 @@ class RepositoryIngestor:
 
     def ingest(self, requested_path: str, session_id: str | None = None) -> RepositoryMemory:
         import shutil
+
+        from .checkov_scanner import CheckovConfig, CheckovScanner
+        from .gitleaks_scanner import GitleaksConfig, GitleaksScanner
         from .semgrep_scanner import SemgrepConfig, SemgrepScanner
         from .trivy_scanner import TrivyConfig, TrivyScanner
-        from .gitleaks_scanner import GitleaksConfig, GitleaksScanner
-        from .checkov_scanner import CheckovConfig, CheckovScanner
 
         if session_id is None:
             session_id = "default-session"

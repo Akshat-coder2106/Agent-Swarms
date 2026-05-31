@@ -25,7 +25,7 @@ import subprocess
 import tempfile
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from .vm_manager import VMConfig
 
@@ -87,9 +87,9 @@ class LocalSandboxRunner:
     as a drop-in replacement by ``SandboxRunner``.
     """
 
-    def __init__(self, config: Optional[VMConfig] = None) -> None:
+    def __init__(self, config: VMConfig | None = None) -> None:
         self.config = config or VMConfig()
-        self._workspace: Optional[Path] = None
+        self._workspace: Path | None = None
         self.boot_time_ms: int = 0
         self.vm_id = f"local-{os.getpid()}-{id(self)}"
 
@@ -192,7 +192,7 @@ class LocalPoolManager:
     since there is no VM boot latency to amortize.
     """
 
-    def __init__(self, config: Optional[VMConfig] = None) -> None:
+    def __init__(self, config: VMConfig | None = None) -> None:
         self.config = config or VMConfig()
         logger.info(
             "Local pool manager initialized (process sandbox, no VM overhead)"

@@ -326,9 +326,9 @@ class CVEScanner:
 
     def lookup_cwe(self, cwe_id: str) -> dict | None:
         """Query NVD API for CWE details."""
-        import urllib.request
-        import urllib.error
         import json
+        import urllib.error
+        import urllib.request
 
         # Ensure cwe_id is formatted correctly (e.g. CWE-89)
         if str(cwe_id).isdigit():
