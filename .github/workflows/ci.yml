@@ -95,14 +95,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push images
+      - name: Build images
         run: |
-          PUSH_FLAG=""
-          if [ "${{ github.event_name }}" = "push" ]; then
-            PUSH_FLAG="--push"
-          fi
-          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-api:latest -f docker/Dockerfile.api . $PUSH_FLAG
-          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-architect:latest -f docker/Dockerfile.architect . $PUSH_FLAG
-          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-scout:latest -f docker/Dockerfile.scout . $PUSH_FLAG
-          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-engineer:latest -f docker/Dockerfile.engineer . $PUSH_FLAG
-          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-critic:latest -f docker/Dockerfile.critic . $PUSH_FLAG
+          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-api:latest -f docker/Dockerfile.api .
+          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-architect:latest -f docker/Dockerfile.architect .
+          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-scout:latest -f docker/Dockerfile.scout .
+          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-engineer:latest -f docker/Dockerfile.engineer .
+          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-critic:latest -f docker/Dockerfile.critic .
+
+      - name: Push images
+        if: github.event_name == 'push'
+        run: |
+          docker push ghcr.io/${{ github.repository }}/sentinel-api:latest
+          docker push ghcr.io/${{ github.repository }}/sentinel-architect:latest
+          docker push ghcr.io/${{ github.repository }}/sentinel-scout:latest
+          docker push ghcr.io/${{ github.repository }}/sentinel-engineer:latest
+          docker push ghcr.io/${{ github.repository }}/sentinel-critic:latest
