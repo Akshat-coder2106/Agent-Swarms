@@ -86,6 +86,8 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker
 
       - name: Login to Container Registry
         if: github.event_name == 'push'
@@ -97,11 +99,11 @@ jobs:
 
       - name: Build images
         run: |
-          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-api:latest -f docker/Dockerfile.api .
-          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-architect:latest -f docker/Dockerfile.architect .
-          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-scout:latest -f docker/Dockerfile.scout .
-          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-engineer:latest -f docker/Dockerfile.engineer .
-          docker buildx build --load -t ghcr.io/${{ github.repository }}/sentinel-critic:latest -f docker/Dockerfile.critic .
+          docker build -t ghcr.io/${{ github.repository }}/sentinel-api:latest -f docker/Dockerfile.api .
+          docker build -t ghcr.io/${{ github.repository }}/sentinel-architect:latest -f docker/Dockerfile.architect .
+          docker build -t ghcr.io/${{ github.repository }}/sentinel-scout:latest -f docker/Dockerfile.scout .
+          docker build -t ghcr.io/${{ github.repository }}/sentinel-engineer:latest -f docker/Dockerfile.engineer .
+          docker build -t ghcr.io/${{ github.repository }}/sentinel-critic:latest -f docker/Dockerfile.critic .
 
       - name: Push images
         if: github.event_name == 'push'
