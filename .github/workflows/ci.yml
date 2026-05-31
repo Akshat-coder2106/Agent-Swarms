@@ -97,19 +97,23 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set lower case repository name
+        run: |
+          echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
       - name: Build images
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/sentinel-api:latest -f docker/Dockerfile.api .
-          docker build -t ghcr.io/${{ github.repository }}/sentinel-architect:latest -f docker/Dockerfile.architect .
-          docker build -t ghcr.io/${{ github.repository }}/sentinel-scout:latest -f docker/Dockerfile.scout .
-          docker build -t ghcr.io/${{ github.repository }}/sentinel-engineer:latest -f docker/Dockerfile.engineer .
-          docker build -t ghcr.io/${{ github.repository }}/sentinel-critic:latest -f docker/Dockerfile.critic .
+          docker build -t ghcr.io/${{ env.REPO_LC }}/sentinel-api:latest -f docker/Dockerfile.api .
+          docker build -t ghcr.io/${{ env.REPO_LC }}/sentinel-architect:latest -f docker/Dockerfile.architect .
+          docker build -t ghcr.io/${{ env.REPO_LC }}/sentinel-scout:latest -f docker/Dockerfile.scout .
+          docker build -t ghcr.io/${{ env.REPO_LC }}/sentinel-engineer:latest -f docker/Dockerfile.engineer .
+          docker build -t ghcr.io/${{ env.REPO_LC }}/sentinel-critic:latest -f docker/Dockerfile.critic .
 
       - name: Push images
         if: github.event_name == 'push'
         run: |
-          docker push ghcr.io/${{ github.repository }}/sentinel-api:latest
-          docker push ghcr.io/${{ github.repository }}/sentinel-architect:latest
-          docker push ghcr.io/${{ github.repository }}/sentinel-scout:latest
-          docker push ghcr.io/${{ github.repository }}/sentinel-engineer:latest
-          docker push ghcr.io/${{ github.repository }}/sentinel-critic:latest
+          docker push ghcr.io/${{ env.REPO_LC }}/sentinel-api:latest
+          docker push ghcr.io/${{ env.REPO_LC }}/sentinel-architect:latest
+          docker push ghcr.io/${{ env.REPO_LC }}/sentinel-scout:latest
+          docker push ghcr.io/${{ env.REPO_LC }}/sentinel-engineer:latest
+          docker push ghcr.io/${{ env.REPO_LC }}/sentinel-critic:latest
