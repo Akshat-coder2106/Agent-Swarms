@@ -13,7 +13,6 @@ The backend is auto-detected at startup based on the availability of the
 from __future__ import annotations
 
 import logging
-import os
 import re
 import shutil
 import time
@@ -104,8 +103,8 @@ class FirecrackerBackend:
     isolation_level = "hardware"
 
     def __init__(self, settings: Settings) -> None:
-        from sandbox_service.vm_manager import VMConfig, SnapshotManager
         from sandbox_service.pool_manager import PoolManager
+        from sandbox_service.vm_manager import SnapshotManager, VMConfig
 
         self._config = VMConfig(
             vcpu_count=settings.sandbox_vcpu_count,

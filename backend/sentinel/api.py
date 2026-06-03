@@ -366,7 +366,7 @@ async def export_to_azure(
     _principal: Annotated[Principal, Depends(require_auth)],
 ) -> dict:
     try:
-        from .azure_integration import export_to_azure_devops, AzureIntegrationError
+        from .azure_integration import AzureIntegrationError, export_to_azure_devops
         session = await orchestrator.get_session(session_id)
         result = await export_to_azure_devops(session)
         return result

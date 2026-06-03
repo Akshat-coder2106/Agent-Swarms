@@ -1112,15 +1112,15 @@ function ActivityFeed({ events }: { events: AuditEvent[] }) {
               {event.agent} · {formatTime(event.timestamp)}
             </small>
           </summary>
-          {event.event_type === "SCOUT_RETRIEVAL" && event.payload?.evidence?.cve_context ? (
+          {event.event_type === "SCOUT_RETRIEVAL" && (event.payload as any)?.evidence?.cve_context ? (
             <div style={{ padding: "12px", background: "#1e293b", color: "#f8fafc", borderRadius: "8px", marginBottom: "8px", marginTop: "8px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
                 <ShieldAlert size={16} color="#ef4444" />
                 <strong style={{ color: "#ef4444" }}>
-                  {event.payload.evidence.cve_context.cve_id} &middot; CVSS {event.payload.evidence.cve_context.cvss_score} &middot; {event.payload.evidence.cve_context.severity}
+                  {(event.payload as any).evidence.cve_context.cve_id} &middot; CVSS {(event.payload as any).evidence.cve_context.cvss_score} &middot; {(event.payload as any).evidence.cve_context.severity}
                 </strong>
               </div>
-              <p style={{ fontSize: "0.85rem", margin: 0, opacity: 0.9 }}>{event.payload.evidence.cve_context.summary}</p>
+              <p style={{ fontSize: "0.85rem", margin: 0, opacity: 0.9 }}>{(event.payload as any).evidence.cve_context.summary}</p>
             </div>
           ) : null}
           <pre>{JSON.stringify(event.payload, null, 2)}</pre>

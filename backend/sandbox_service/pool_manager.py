@@ -11,9 +11,8 @@ import logging
 import queue
 import threading
 import uuid
-from typing import Optional
 
-from .vm_manager import VMConfig, VMManager, SnapshotManager
+from .vm_manager import SnapshotManager, VMConfig, VMManager
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +28,8 @@ class PoolManager:
     def __init__(
         self,
         pool_size: int = 1,
-        config: Optional[VMConfig] = None,
-        snapshot_manager: Optional[SnapshotManager] = None,
+        config: VMConfig | None = None,
+        snapshot_manager: SnapshotManager | None = None,
     ) -> None:
         self.pool_size = pool_size
         self.config = config or VMConfig()

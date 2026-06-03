@@ -1,8 +1,11 @@
-import httpx
-import os
 import base64
+import os
 from typing import Any
+
+import httpx
+
 from .models import AuditSession
+
 
 class AzureIntegrationError(Exception):
     pass
@@ -19,7 +22,7 @@ async def export_to_azure_devops(session: AuditSession) -> dict[str, Any]:
         
     url = f"https://dev.azure.com/{organization}/{project}/_apis/wit/workitems/$Issue?api-version=7.0"
     
-    auth_header = "Basic " + base64.b64encode(f":{pat}".encode("utf-8")).decode("utf-8")
+    auth_header = "Basic " + base64.b64encode(f":{pat}".encode()).decode("utf-8")
     headers = {
         "Authorization": auth_header,
         "Content-Type": "application/json-patch+json"

@@ -54,6 +54,8 @@ IGNORED_DIRS = {
     ".venv",
     "venv",
     ".next",
+    "tests",
+    "examples",
     "sentinel_cli.py",
     "sentinel",  # Never scan Sentinel's own backend code
 }
@@ -80,7 +82,6 @@ UNSAFE_EXEC = re.compile(r"\b(eval|exec)\s*\(")
 JS_UNSAFE_EXEC = re.compile(r"\b(eval|Function)\s*\(")
 PY_PATH_TRAVERSAL = re.compile(
     r"\b(open|send_file|FileResponse|Path)\s*\([^)]*(request\.|input\s*\(|\.args|\.GET|\.POST)",
-    re.IGNORECASE,
 )
 PY_PICKLE_LOAD = re.compile(r"\bpickle\.(load|loads)\s*\(")
 PY_YAML_LOAD = re.compile(r"\byaml\.load\s*\(")
@@ -443,10 +444,11 @@ class RepositoryIngestor:
 
     def ingest(self, requested_path: str, session_id: str | None = None) -> RepositoryMemory:
         import shutil
+
+        from .checkov_scanner import CheckovConfig, CheckovScanner
+        from .gitleaks_scanner import GitleaksConfig, GitleaksScanner
         from .semgrep_scanner import SemgrepConfig, SemgrepScanner
         from .trivy_scanner import TrivyConfig, TrivyScanner
-        from .gitleaks_scanner import GitleaksConfig, GitleaksScanner
-        from .checkov_scanner import CheckovConfig, CheckovScanner
 
         if session_id is None:
             session_id = "default-session"

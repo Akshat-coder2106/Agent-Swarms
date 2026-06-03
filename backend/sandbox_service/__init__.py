@@ -7,9 +7,9 @@ Provides two execution backends:
   execution with resource limits and sanitized environment.
 """
 
-from .vm_manager import VMConfig, VMManager, SnapshotFiles, SnapshotManager
 from .pool_manager import PoolManager
-from .sandbox_local import LocalSandboxRunner, LocalPoolManager
+from .sandbox_local import LocalPoolManager, LocalSandboxRunner
+from .vm_manager import SnapshotFiles, SnapshotManager, VMConfig, VMManager
 
 __all__ = [
     "VMConfig",

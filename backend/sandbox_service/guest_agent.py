@@ -259,7 +259,7 @@ def main() -> None:
             try:
                 conn, addr = server.accept()
                 handle_connection(conn)
-            except socket.timeout:
+            except TimeoutError:
                 continue
 
     except AttributeError:
@@ -275,7 +275,7 @@ def main() -> None:
             try:
                 conn, addr = server.accept()
                 handle_connection(conn)
-            except socket.timeout:
+            except TimeoutError:
                 continue
 
     except Exception as exc:

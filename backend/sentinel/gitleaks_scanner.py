@@ -8,8 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from git import Repo
-
 from .models import (
     Finding,
     FindingCategory,
@@ -225,6 +223,8 @@ class GitleaksScanner:
         file_path: str,
     ) -> list[dict[str, Any]]:
         """Get history of secrets in a specific file across commits."""
+        from git import Repo
+
         repo = Repo(repo_path)
         commits = list(repo.iter_commits(paths=file_path))
 
