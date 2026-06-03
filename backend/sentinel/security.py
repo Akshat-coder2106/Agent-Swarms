@@ -141,6 +141,11 @@ RATE_LIMIT_CACHE: dict[str, list[float]] = {}
 def check_rate_limit(client_ip: str, max_requests: int = 100, window_sec: int = 60) -> None:
     """Prevent automated denial of service attacks against sandbox orchestrators."""
     import time
+    
+    # Prevent memory leak from distributed uptime checkers with rotating IPs
+    if len(RATE_LIMIT_CACHE) > 10000:
+        RATE_LIMIT_CACHE.clear()
+        
     now = time.time()
     history = RATE_LIMIT_CACHE.setdefault(client_ip, [])
     # Evict expired events
