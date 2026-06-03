@@ -94,6 +94,11 @@ def require_auth(
     return principal
 
 
+@app.get("/")
+async def root() -> dict[str, str]:
+    return {"message": "Welcome to Project Sentinel API. System is online.", "status": "ok"}
+
+
 @app.get("/api/health")
 async def health() -> dict[str, str]:
     return {"status": "ok", "service": "project-sentinel"}
