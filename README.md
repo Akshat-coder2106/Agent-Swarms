@@ -2,7 +2,14 @@
 
 Autonomous DevSecOps swarm featuring hardware-isolated Firecracker microVMs, deterministic Temporal workflows, Pydantic-enforced LLM agents, and proper Role-Based Access Control (RBAC).
 
-**🌟 [Live Demo](https://agent-swarms-2.vercel.app/)**
+**🌟 [Live Demo (Frontend)](https://agent-swarms-2.vercel.app/)** · **[API (Backend)](https://agent-swarms-2.onrender.com/api/health)**
+
+### Microsoft stack (hackathon)
+- **Azure OpenAI** — `SENTINEL_LLM_PROVIDER=azure` + `AZURE_OPENAI_*` env vars
+- **SARIF 2.1** — GitHub Advanced Security export: `GET /api/sessions/{id}/export/sarif`
+- **Azure DevOps** — work items: `POST /api/sessions/{id}/export/azure`
+- **Responsible AI policy** — `GET /api/sessions/{id}/policy`
+- Details: [`docs/microsoft.md`](docs/microsoft.md)
 
 ## Use as GitHub Action
 [![GitHub Action Status](https://img.shields.io/github/actions/workflow/status/Akshat-coder2106/Agent-Swarms/sentinel-example.yml?branch=main)](https://github.com/Akshat-coder2106/Agent-Swarms/actions)
@@ -142,7 +149,9 @@ Add `--approve` to apply the validated patch to the demo repository.
 To deploy this project to the cloud for the 30-day requirement:
 1. **Push to GitHub**: Commit this codebase to a public or private GitHub repository.
 2. **Backend (Render)**: Connect your repository to Render and deploy using the provided `render.yaml`. You will need to supply the `ANTHROPIC_API_KEY` and `GITHUB_TOKEN` as environment variables in the Render dashboard.
-3. **Frontend (Vercel)**: Connect your repository to Vercel. It will automatically detect Vite and use `vercel.json`. Set the environment variable `VITE_SENTINEL_API_URL` to your Render backend URL (e.g. `https://sentinel-api.onrender.com`).
+3. **Frontend (Vercel)**: Set environment variables then redeploy:
+   - `VITE_SENTINEL_API_URL` = `https://agent-swarms-2.onrender.com`
+   - `VITE_DEFAULT_REPO_PATH` = `examples/python-vulnerable-api`
 
 **Test Credentials**: You do not need a password to access the UI. Just click "Rotate Token" in the sidebar to authenticate as `local-operator`.
 

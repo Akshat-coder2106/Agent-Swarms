@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from collections import defaultdict
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from .agents import ArchitectAgent, CriticAgent, EngineerAgent, PatchGenerationError, ScoutAgent
 from .config import Settings
@@ -20,8 +23,10 @@ from .models import (
     LogicalDeltaSnapshot,
     MCPMessage,
     MessageType,
+    PatchProposal,
     RepositoryMemory,
     RollbackReport,
+    SessionNotFoundError,
     SessionStatus,
     TaskStatus,
     Verdict,
@@ -29,12 +34,22 @@ from .models import (
 from .sandbox import SandboxRunner
 
 
-class SessionNotFoundError(KeyError):
-    pass
-
-
 class ApprovalError(ValueError):
     pass
+
+
+def _stage_validated_patch(repo_root: Path, patch: PatchProposal) -> None:
+    """Apply a sandbox-approved patch to the session working tree for subsequent tasks."""
+    for file_patch in patch.files:
+        target = repo_root / file_patch.file_path
+        current = safe_read_text(target)
+        if current == file_patch.patched:
+            continue
+        if current != file_patch.original:
+            raise ApprovalError(
+                f"Cannot stage patch; {file_patch.file_path} changed unexpectedly since validation baseline."
+            )
+        target.write_text(file_patch.patched, encoding="utf-8")
 
 
 class EventBus:
@@ -172,6 +187,7 @@ class SentinelOrchestrator:
                 await self._save(session)
                 return session
 
+            validated_patches: list[str] = []
             for task in tasks:
                 task.status = TaskStatus.ACTIVE
                 await self._emit(
@@ -219,6 +235,7 @@ class SentinelOrchestrator:
                         repo_root=repo_root,
                         evidence=evidence,
                         iteration=1,
+                        operator_hint=session.operator_hint,
                     )
                     
                     # Inter-Agent Adversarial Debate Loop: Critic challenges and Engineer defends!
@@ -243,7 +260,7 @@ class SentinelOrchestrator:
                     patch = self._engineer.defend_patch(original=original_content, patch=patch, challenges=challenges)
 
                 except PatchGenerationError as exc:
-                    print(f"PIPELINE ERROR: {exc}", flush=True)
+                    logger.warning("Patch generation failed for %s: %s", task.task_id, exc)
                     await self._escalate(
                         session=session,
                         task_id=task.task_id,
@@ -252,8 +269,7 @@ class SentinelOrchestrator:
                         suggestion="Provide a one-line implementation constraint for the Engineer.",
                     )
                     task.status = TaskStatus.ESCALATED
-                    await self._save(session)
-                    return session
+                    continue
 
                 session.patches.append(patch)
                 session.messages.append(
@@ -347,20 +363,22 @@ class SentinelOrchestrator:
 
                 if validation.verdict == Verdict.APPROVE and delta.accumulated_delta >= 0.85:
                     task.status = TaskStatus.PASSED
-                    session.status = SessionStatus.AWAITING_APPROVAL
+                    validated_patches.append(patch.patch_id)
+                    try:
+                        _stage_validated_patch(repo_root, patch)
+                    except ApprovalError as exc:
+                        logger.warning("Could not stage patch for next task: %s", exc)
                     await self._emit(
                         session,
-                        EventType.SESSION_COMPLETE,
+                        EventType.AUDIT_LOG,
                         AgentRole.CRITIC,
                         {
-                            "summary": "Validated patch is awaiting operator approval.",
+                            "summary": f"Task {task.task_id} validated; continuing to next finding.",
                             "patch_id": patch.patch_id,
-                            "status": session.status,
                         },
                         task_id=task.task_id,
                     )
-                    await self._save(session)
-                    return session
+                    continue
 
                 await self._escalate(
                     session=session,
@@ -370,13 +388,30 @@ class SentinelOrchestrator:
                     suggestion="Inspect failing validation axis and constrain the next patch.",
                 )
                 task.status = TaskStatus.ESCALATED
-                await self._save(session)
-                return session
+                continue
 
+            if validated_patches:
+                session.validated_patch_ids = validated_patches
+                session.status = SessionStatus.AWAITING_APPROVAL
+                await self._emit(
+                    session,
+                    EventType.SESSION_COMPLETE,
+                    AgentRole.CRITIC,
+                    {
+                        "summary": (
+                            f"{len(validated_patches)} patch(es) validated, awaiting operator approval."
+                        ),
+                        "patch_ids": validated_patches,
+                        "validated_patch_ids": validated_patches,
+                        "status": session.status,
+                    },
+                )
+            else:
+                session.status = SessionStatus.ESCALATED
             await self._save(session)
             return session
         except Exception as exc:
-            print(f"PIPELINE ERROR: {exc}", flush=True)
+            logger.exception("Session pipeline failed: %s", exc)
             session.status = SessionStatus.FAILED
             await self._emit(
                 session,
@@ -395,26 +430,11 @@ class SentinelOrchestrator:
     ) -> AuditSession:
         if not self._graph:
             raise RuntimeError("LangGraph runner is not configured")
-        graph_state = await self._graph.run(
-            session_id=session.session_id,
-            memory=memory,
-            repo_path=session.repo_path,
-        )
-        session.tasks = graph_state["tasks"]
-        if not session.messages:
-            session.messages.extend(graph_state.get("mcp_messages", []))
-        await self._emit(
-            session,
-            EventType.AUDIT_LOG,
-            AgentRole.ROUTER,
-            {
-                "message": "Graph state machine executed",
-                "engine": graph_state["graph_engine"],
-                "trace": graph_state["trace"],
-            },
-        )
-        task = graph_state["task"]
-        if not task:
+
+        tasks, architect_messages = self._architect.build_tasks(session.session_id, memory)
+        session.tasks = tasks
+        session.messages.extend(architect_messages)
+        if not tasks:
             session.status = SessionStatus.COMPLETED
             await self._emit(
                 session,
@@ -425,106 +445,88 @@ class SentinelOrchestrator:
             await self._save(session)
             return session
 
-        task.status = TaskStatus.ACTIVE
-        await self._emit(
-            session,
-            EventType.ARCHITECT_UPDATE,
-            AgentRole.ARCHITECT,
-            {
-                "task_id": task.task_id,
-                "target_path": task.target_path,
-                "status": task.status,
-                "priority": task.priority,
-                "graph_engine": graph_state["graph_engine"],
-            },
-            task_id=task.task_id,
-        )
-        evidence = graph_state["evidence"]
-        if evidence:
+        validated_patch_ids: list[str] = []
+        for task in tasks:
+            task.status = TaskStatus.ACTIVE
+            graph_state = await self._graph.run_task(
+                session_id=session.session_id,
+                memory=memory,
+                repo_path=session.repo_path,
+                task=task,
+                operator_hint=session.operator_hint,
+            )
             await self._emit(
                 session,
-                EventType.SCOUT_RETRIEVAL,
-                AgentRole.SCOUT,
-                evidence.model_dump(mode="json"),
+                EventType.ARCHITECT_UPDATE,
+                AgentRole.ARCHITECT,
+                {
+                    "task_id": task.task_id,
+                    "target_path": task.target_path,
+                    "graph_engine": graph_state["graph_engine"],
+                },
                 task_id=task.task_id,
             )
+            evidence = graph_state.get("evidence")
+            if evidence:
+                await self._emit(
+                    session,
+                    EventType.SCOUT_RETRIEVAL,
+                    AgentRole.SCOUT,
+                    evidence.model_dump(mode="json"),
+                    task_id=task.task_id,
+                )
+            patch = graph_state.get("patch")
+            validation = graph_state.get("validation")
+            if not patch or not validation:
+                task.status = TaskStatus.ESCALATED
+                continue
 
-        patch = graph_state["patch"]
-        validation = graph_state["validation"]
-        if not patch or not validation:
-            await self._escalate(
-                session=session,
+            session.patches.append(patch)
+            session.validations.append(validation)
+            await self._emit(
+                session,
+                EventType.ENGINEER_PATCH,
+                AgentRole.ENGINEER,
+                patch.model_dump(mode="json"),
                 task_id=task.task_id,
-                reason=graph_state["escalation_reason"] or "Graph did not produce a validated patch.",
-                last_diff=patch.unified_diff if patch else "",
-                suggestion="Check LLM provider configuration or add a deterministic remediation rule.",
             )
-            task.status = TaskStatus.ESCALATED
-            await self._save(session)
-            return session
+            await self._emit(
+                session,
+                EventType.SANDBOX_RESULT,
+                AgentRole.ROUTER,
+                validation.model_dump(mode="json"),
+                task_id=task.task_id,
+            )
+            delta = self._calculate_delta(validation, iteration=graph_state["iteration"])
+            session.delta_history.append(delta)
+            if validation.verdict == Verdict.APPROVE and delta.accumulated_delta >= 0.85:
+                task.status = TaskStatus.PASSED
+                validated_patch_ids.append(patch.patch_id)
+                try:
+                    _stage_validated_patch(Path(session.repo_path), patch)
+                except ApprovalError as exc:
+                    logger.warning("Could not stage graph patch: %s", exc)
+            else:
+                task.status = TaskStatus.ESCALATED
 
-        session.patches.append(patch)
-        await self._emit(
-            session,
-            EventType.ENGINEER_PATCH,
-            AgentRole.ENGINEER,
-            patch.model_dump(mode="json"),
-            task_id=task.task_id,
-        )
-        session.validations.append(validation)
-        await self._emit(
-            session,
-            EventType.SANDBOX_RESULT,
-            AgentRole.ROUTER,
-            validation.model_dump(mode="json"),
-            task_id=task.task_id,
-        )
-        await self._emit(
-            session,
-            EventType.CRITIC_VERDICT,
-            AgentRole.CRITIC,
-            {
-                "verdict": validation.verdict,
-                "axes": [axis.model_dump(mode="json") for axis in validation.axes],
-                "risk_assessment": graph_state["critic_risk"],
-                "graph_engine": graph_state["graph_engine"],
-            },
-            task_id=task.task_id,
-        )
-        delta = self._calculate_delta(validation, iteration=graph_state["iteration"])
-        session.delta_history.append(delta)
-        await self._emit(
-            session,
-            EventType.DELTA_UPDATE,
-            AgentRole.ROUTER,
-            delta.model_dump(mode="json"),
-            task_id=task.task_id,
-        )
-        if validation.verdict == Verdict.APPROVE and delta.accumulated_delta >= 0.85:
-            task.status = TaskStatus.PASSED
+        if validated_patch_ids:
+            session.validated_patch_ids = validated_patch_ids
             session.status = SessionStatus.AWAITING_APPROVAL
             await self._emit(
                 session,
                 EventType.SESSION_COMPLETE,
                 AgentRole.CRITIC,
                 {
-                    "summary": "Validated graph-executed patch is awaiting operator approval.",
-                    "patch_id": patch.patch_id,
+                    "summary": (
+                        f"{len(validated_patch_ids)} graph-validated patch(es) awaiting approval."
+                    ),
+                    "patch_ids": validated_patch_ids,
+                    "validated_patch_ids": validated_patch_ids,
                     "status": session.status,
                 },
-                task_id=task.task_id,
             )
-            await self._save(session)
-            return session
-
-        await self._escalate(
-            session=session,
-            task_id=task.task_id,
-            reason=graph_state["escalation_reason"] or "Validation did not converge above approval threshold.",
-            last_diff=patch.unified_diff,
-            suggestion="Inspect failing validation axis and constrain the next patch.",
-        )
-        task.status = TaskStatus.ESCALATED
+        else:
+            session.status = SessionStatus.ESCALATED
         await self._save(session)
         return session
 
@@ -539,36 +541,60 @@ class SentinelOrchestrator:
         )
         if not validation or validation.verdict != Verdict.APPROVE:
             raise ApprovalError("Only approved patches can be applied")
+        if patch_id in session.approved_patch_ids:
+            raise ApprovalError(f"Patch already approved: {patch_id}")
+
         repo_root = Path(session.repo_path)
         for file_patch in patch.files:
             target = repo_root / file_patch.file_path
             current = safe_read_text(target)
+            if current == file_patch.patched:
+                continue
             if current != file_patch.original:
                 raise ApprovalError(f"Target changed since validation: {file_patch.file_path}")
             target.write_text(file_patch.patched, encoding="utf-8")
-        
-        # Automatic GitHub PR Integration simulation logic
-        pr_link = "https://github.com/akshatagrawal/agent-swarms/pull/1"
-        try:
-            import os
-            token = os.getenv("GITHUB_TOKEN")
-            if token:
-                # If running inside a git repository, commit and push dynamically
-                pass
-        except Exception:
-            pass
 
-        session.approved_patch_id = patch.patch_id
-        session.status = SessionStatus.COMPLETED
+        session.approved_patch_ids.append(patch_id)
+
+        validated_ids = {
+            v.patch_id for v in session.validations if v.verdict == Verdict.APPROVE
+        }
+        if session.validated_patch_ids:
+            validated_ids = set(session.validated_patch_ids)
+
+        pr_link: str | None = None
+        import os
+
+        token = os.getenv("GITHUB_TOKEN")
+        if token and set(session.approved_patch_ids) >= validated_ids:
+            try:
+                from .github_integration import create_github_pr
+
+                pr_link = await create_github_pr(session, patch, token)
+            except Exception as exc:
+                logger.warning("GitHub PR creation failed: %s", exc)
+
+        if set(session.approved_patch_ids) >= validated_ids:
+            session.status = SessionStatus.COMPLETED
+            summary = f"All {len(session.approved_patch_ids)} validated patch(es) approved and applied."
+        else:
+            session.status = SessionStatus.AWAITING_APPROVAL
+            summary = (
+                f"Patch approved ({len(session.approved_patch_ids)}/{len(validated_ids)}). "
+                "Additional validated patches await approval."
+            )
+        if pr_link:
+            summary += " GitHub Pull Request created."
         await self._emit(
             session,
             EventType.SESSION_COMPLETE,
             AgentRole.ROUTER,
             {
-                "summary": "Approved patch applied to repository. GitHub Pull Request created automatically.",
+                "summary": summary,
                 "patch_id": patch.patch_id,
+                "approved_patch_ids": session.approved_patch_ids,
                 "changed_files": [file.file_path for file in patch.files],
-                "pull_request_url": pr_link,
+                "pull_request_url": pr_link or f"/api/sessions/{session.session_id}/export/sarif",
             },
         )
         await self._save(session)
@@ -617,9 +643,9 @@ class SentinelOrchestrator:
 
     async def add_operator_hint(self, session_id: str, hint: str) -> AuditSession:
         session = await self._store.get(session_id)
-        if not session.diagnosis:
-            raise ApprovalError("Session is not awaiting an operator hint")
-        session.diagnosis.suggested_hint = hint
+        session.operator_hint = hint
+        if session.diagnosis:
+            session.diagnosis.suggested_hint = hint
         await self._emit(
             session,
             EventType.ESCALATION,

@@ -5,8 +5,13 @@ ENV PYTHONUNBUFFERED=1 \
     SENTINEL_ENV=production
 
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY pyproject.toml README.md ./
 COPY backend ./backend
+COPY examples ./examples
+RUN mkdir -p /app/data
 RUN pip install --no-cache-dir .
 
 EXPOSE 8000

@@ -188,6 +188,8 @@ type Session = {
   delta_history: Delta[];
   events: AuditEvent[];
   approved_patch_id?: string | null;
+  approved_patch_ids?: string[];
+  validated_patch_ids?: string[];
 };
 
 type AuthContext = {
@@ -221,7 +223,7 @@ type RiskAssessment = {
 };
 
 const API_BASE = import.meta.env.VITE_SENTINEL_API_URL ?? "http://127.0.0.1:8000";
-const DEFAULT_REPO = import.meta.env.VITE_DEFAULT_REPO_PATH ?? "/Users/akshatagrawal/Desktop/Agent Swarms/examples/python-vulnerable-api";
+const DEFAULT_REPO = import.meta.env.VITE_DEFAULT_REPO_PATH ?? "examples/python-vulnerable-api";
 
 type DemoStep = {
   id: string;
@@ -535,6 +537,37 @@ function App() {
     a.click();
   };
 
+  const downloadSarif = async () => {
+    if (!session || !effectiveBearer) return;
+    const response = await fetch(`${API_BASE}/api/sessions/${session.session_id}/export/sarif`, {
+      headers: { Authorization: `Bearer ${effectiveBearer}`, "X-Session-ID": session.session_id },
+    });
+    if (!response.ok) {
+      setError("Failed to export SARIF");
+      return;
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sentinel-${session.session_id}.sarif.json`;
+    a.click();
+  };
+
+  const exportAzureDevOps = async () => {
+    if (!session || !effectiveBearer) return;
+    const response = await fetch(`${API_BASE}/api/sessions/${session.session_id}/export/azure`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${effectiveBearer}`, "X-Session-ID": session.session_id },
+    });
+    if (!response.ok) {
+      setError(await response.text());
+      return;
+    }
+    const data = await response.json();
+    alert(`Azure DevOps: ${data.work_items_created} work item(s)${data.mocked ? " (demo mode)" : ""}`);
+  };
+
   const implementedCount = capabilities?.capabilities.filter((item) => item.status === "IMPLEMENTED").length ?? 0;
   const adapterCount = capabilities?.capabilities.filter((item) => item.status === "MVP_ADAPTER").length ?? 0;
   const plannedCount = capabilities?.capabilities.filter((item) => item.status === "PLANNED").length ?? 0;
@@ -688,7 +721,13 @@ function App() {
               onRollback={rollback} 
               onCreatePR={createPR}
               onDownloadReport={downloadReport}
-              isApproved={session?.approved_patch_id === latestPatch?.patch_id}
+              onDownloadSarif={downloadSarif}
+              onExportAzure={exportAzureDevOps}
+              isApproved={
+                !!latestPatch &&
+                (session?.approved_patch_ids?.includes(latestPatch.patch_id) ||
+                  session?.approved_patch_id === latestPatch.patch_id)
+              }
             />
           </Panel>
           <Panel title="Activity Feed" icon={<Sparkles size={18} />}>
@@ -1029,6 +1068,8 @@ function PatchReview({
   onRollback,
   onCreatePR,
   onDownloadReport,
+  onDownloadSarif,
+  onExportAzure,
   isApproved,
 }: {
   patch?: Patch;
@@ -1038,6 +1079,8 @@ function PatchReview({
   onRollback: () => void;
   onCreatePR: () => void;
   onDownloadReport: () => void;
+  onDownloadSarif: () => void;
+  onExportAzure: () => void;
   isApproved: boolean;
 }) {
   if (!patch) {
@@ -1089,6 +1132,14 @@ function PatchReview({
             </button>
           </>
         )}
+        <button className="secondary-button" onClick={onDownloadSarif} title="GitHub Advanced Security SARIF">
+          <Shield size={18} />
+          SARIF
+        </button>
+        <button className="secondary-button" onClick={onExportAzure} title="Azure DevOps work items">
+          <Server size={18} />
+          Azure DevOps
+        </button>
         <button className="secondary-button" onClick={onRollback}>
           <RotateCcw size={18} />
           Rollback

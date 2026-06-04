@@ -48,6 +48,7 @@ class WorkflowState(TypedDict):
     escalation_reason: str | None
     graph_engine: str
     mcp_messages: NotRequired[list]
+    operator_hint: NotRequired[str | None]
 
 
 class AgentNode(StrEnum):
@@ -177,6 +178,43 @@ class SentinelLangGraph:
         state = await self._router_node(state)
         return await self._terminal_node(state)
 
+    async def run_task(
+        self,
+        *,
+        session_id: str,
+        memory: RepositoryMemory,
+        repo_path: str,
+        task: AgentTask,
+        operator_hint: str | None = None,
+    ) -> WorkflowState:
+        """Run Scout → Engineer → debate → Critic → Router for a single task."""
+        state: WorkflowState = {
+            "session_id": session_id,
+            "repo_path": repo_path,
+            "trace": [],
+            "memory": memory,
+            "tasks": [task],
+            "task": task,
+            "evidence": None,
+            "patch": None,
+            "validation": None,
+            "critic_risk": None,
+            "iteration": 1,
+            "logical_delta": 0.0,
+            "accumulated_delta": 0.0,
+            "escalation_reason": None,
+            "graph_engine": self.engine_name,
+            "mcp_messages": [],
+            "operator_hint": operator_hint,
+        }
+        state = await self._scout_node(state)
+        state = await self._engineer_node(state)
+        if self._route_after_engineer(state) == "escalation":
+            return state
+        state = await self._critic_node(state)
+        state = await self._router_node(state)
+        return state
+
     async def _architect_node(self, state: WorkflowState) -> WorkflowState:
         if not self._architect_agent:
             raise RuntimeError("Architect agent not set")
@@ -213,6 +251,7 @@ class SentinelLangGraph:
                 repo_root=Path(state["repo_path"]),
                 evidence=state["evidence"],
                 iteration=state["iteration"],
+                operator_hint=state.get("operator_hint"),
                 failure_reason=failure_reason,
             )
             state["patch"] = patch
@@ -235,6 +274,33 @@ class SentinelLangGraph:
     async def _critic_node(self, state: WorkflowState) -> WorkflowState:
         if not self._critic_agent or not self._sandbox_runner or not state["patch"]:
             raise RuntimeError("Critic agent, sandbox runner, or patch not set")
+
+        patch = state["patch"]
+        challenges = self._critic_agent.adversarial_challenge(patch)
+        self._trace(
+            state,
+            AgentRole.CRITIC,
+            "adversarial_challenges",
+            {"challenges": challenges, "count": len(challenges)},
+        )
+        original_content = ""
+        if patch.files:
+            original_path = Path(state["repo_path"]) / patch.files[0].file_path
+            if original_path.exists():
+                original_content = original_path.read_text(encoding="utf-8")
+        if self._engineer_agent and challenges:
+            patch = self._engineer_agent.defend_patch(
+                original=original_content,
+                patch=patch,
+                challenges=challenges,
+            )
+            state["patch"] = patch
+            self._trace(
+                state,
+                AgentRole.ENGINEER,
+                "patch_defended",
+                {"challenges_count": len(challenges)},
+            )
 
         self._trace(
             state,

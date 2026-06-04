@@ -6,17 +6,27 @@ services:
     region: oregon
     plan: free
     branch: main
-    healthCheckPath: /api/system/capabilities
+    healthCheckPath: /api/health
     envVars:
       - key: PORT
         value: 8000
+      - key: SENTINEL_ENV
+        value: production
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: GITHUB_TOKEN
         sync: false
-      - key: SENTINEL_JWT_SECRET
+      - key: SENTINEL_AUTH_SECRET
         generateValue: true
-      - key: ALLOWED_CORS_ORIGINS
-        value: "https://project-sentinel-frontend.vercel.app"
-      - key: ENABLE_LANGGRAPH
+      - key: SENTINEL_ALLOWED_ORIGINS
+        value: "https://agent-swarms-2.vercel.app,https://project-sentinel-frontend.vercel.app"
+      - key: SENTINEL_ALLOWED_REPO_ROOTS
+        value: "/app,/tmp"
+      - key: SENTINEL_ENABLE_LANGGRAPH
         value: "true"
+      - key: SENTINEL_ALLOW_DEV_TOKENS
+        value: "true"
+      - key: SENTINEL_SESSION_DB
+        value: "/app/data/sentinel_sessions.db"
+      - key: SENTINEL_LLM_PROVIDER
+        value: "auto"

@@ -21,7 +21,10 @@ class Settings:
     token_budget: int
     anthropic_api_key: str
     anthropic_model: str
+    azure_openai_deployment: str
+    llm_provider: str
     llm_timeout_seconds: int
+    policy_confidence_threshold: float
     enable_langgraph: bool
     # Sandbox settings
     sandbox_engine: str = "auto"  # "auto" | "firecracker" | "local"
@@ -71,7 +74,12 @@ def load_settings() -> Settings:
         token_budget=int(os.getenv("SENTINEL_TOKEN_BUDGET", "2000000")),
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", ""),
         anthropic_model=os.getenv("SENTINEL_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
+        azure_openai_deployment=os.getenv(
+            "AZURE_OPENAI_DEPLOYMENT", os.getenv("SENTINEL_AZURE_DEPLOYMENT", "gpt-4o")
+        ),
+        llm_provider=os.getenv("SENTINEL_LLM_PROVIDER", "auto").lower(),
         llm_timeout_seconds=int(os.getenv("SENTINEL_LLM_TIMEOUT_SECONDS", "90")),
+        policy_confidence_threshold=float(os.getenv("SENTINEL_POLICY_CONFIDENCE_THRESHOLD", "0.92")),
         enable_langgraph=os.getenv("SENTINEL_ENABLE_LANGGRAPH", "true").lower() == "true",
         sandbox_engine=os.getenv("SENTINEL_SANDBOX_ENGINE", "auto"),
         sandbox_vcpu_count=int(os.getenv("SENTINEL_SANDBOX_VCPU_COUNT", "1")),

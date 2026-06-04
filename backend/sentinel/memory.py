@@ -86,6 +86,7 @@ PY_PATH_TRAVERSAL = re.compile(
 PY_PICKLE_LOAD = re.compile(r"\bpickle\.(load|loads)\s*\(")
 PY_YAML_LOAD = re.compile(r"\byaml\.load\s*\(")
 JS_XSS_SINK = re.compile(r"\.(innerHTML|outerHTML)\s*=|dangerouslySetInnerHTML")
+GIT_MERGE_CONFLICT = re.compile(r"^<{7}", re.MULTILINE)
 PY_WEAK_RANDOM = re.compile(r"\brandom\.(random|randint|randrange|choice|choices)\s*\(")
 SECURITY_CONTEXT = re.compile(r"(?i)(token|secret|password|csrf|session|otp|nonce|key)")
 
@@ -429,6 +430,27 @@ def detect_findings(root: Path, path: Path, text: str) -> list[Finding]:
                     remediation="Render text content safely or sanitize HTML with a reviewed allowlist.",
                 )
             )
+    if GIT_MERGE_CONFLICT.search(text):
+        lines = text.splitlines()
+        conflict_line = next(
+            (idx + 1 for idx, line in enumerate(lines) if line.startswith("<<<<<<<")),
+            1,
+        )
+        snippet = next((line for line in lines if line.startswith("<<<<<<<")), "<<<<<<<")
+        findings.append(
+            Finding(
+                rule_id="git.merge_conflict",
+                title="Unresolved Git merge conflict markers",
+                category=FindingCategory.MISC,
+                severity=FindingSeverity.HIGH,
+                file_path=relative,
+                line=conflict_line,
+                snippet=snippet[:200],
+                confidence=1.0,
+                cwe="CWE-710",
+                remediation="Resolve the merge conflict and remove all conflict markers before committing.",
+            )
+        )
     return findings
 
 

@@ -14,23 +14,23 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import load_settings
 from .github_integration import GitHubIntegrationError, create_github_pr
+from .capabilities import build_system_capabilities
 from .models import (
     ApprovalRequest,
     AuditRequest,
     AuthContext,
     AuthTokenRequest,
-    CapabilityItem,
-    CapabilityStatus,
     OperatorHintRequest,
     RollbackRequest,
-    SystemCapabilities,
 )
-from .orchestrator import ApprovalError, SentinelOrchestrator, SessionNotFoundError
+from .models import SessionNotFoundError
+from .orchestrator import ApprovalError, SentinelOrchestrator
+from .store_factory import build_session_store
 from .report_generator import generate_markdown_report
 from .security import AuthenticationError, Principal, bearer_from_header, issue_token, verify_token
 
 settings = load_settings()
-orchestrator = SentinelOrchestrator(settings=settings)
+orchestrator = SentinelOrchestrator(settings=settings, store=build_session_store(settings))
 
 app = FastAPI(
     title="Project Sentinel",
@@ -137,94 +137,10 @@ async def auth_context(principal: Annotated[Principal, Depends(require_auth)]) -
 
 @app.get("/api/system/capabilities")
 async def system_capabilities(_principal: Annotated[Principal, Depends(require_auth)]) -> dict:
-    return SystemCapabilities(
-        spec_version="Project Sentinel v4.0",
-        production_complete=False,
-        summary=(
-            "This build implements the local end-to-end Sentinel flow and secure interfaces. "
-            "Cloud-native services from the full v4 blueprint are represented by adapter seams."
-        ),
-        capabilities=[
-            CapabilityItem(
-                key="repository_ingestion",
-                label="Repository ingestion and analysis",
-                status=CapabilityStatus.IMPLEMENTED,
-                detail="Indexes source files, chunks context, extracts Python symbols, and detects security findings.",
-            ),
-            CapabilityItem(
-                key="code_memory",
-                label="Semantic and graph code memory",
-                status=CapabilityStatus.MVP_ADAPTER,
-                detail="Deterministic local chunk search and symbol graph; Qdrant and Neo4j are adapter targets.",
-            ),
-            CapabilityItem(
-                key="agent_orchestration",
-                label="Planner, retriever, executor, validator roles",
-                status=CapabilityStatus.IMPLEMENTED,
-                detail=(
-                    "Typed Architect, Scout, Engineer, Critic, and Router state transitions "
-                    "with MCP envelopes and a LangGraph-compatible execution path."
-                ),
-            ),
-            CapabilityItem(
-                key="llm_remediation",
-                label="LLM remediation and critic reasoning",
-                status=CapabilityStatus.MVP_ADAPTER,
-                detail=(
-                    "Engineer and Critic use Anthropic when ANTHROPIC_API_KEY is configured; "
-                    "deterministic rules keep offline demos reliable."
-                ),
-            ),
-            CapabilityItem(
-                key="sandbox_validation",
-                label="Sandboxed patch validation",
-                status=CapabilityStatus.IMPLEMENTED,
-                detail=(
-                    f"Dual-mode sandbox: Firecracker MicroVM (Linux/KVM) with snapshot forking "
-                    f"and AF_VSOCK, or process-isolated subprocess (macOS). "
-                    f"Active engine: {orchestrator._sandbox.engine_name}."
-                ),
-            ),
-            CapabilityItem(
-                key="human_escalation",
-                label="Human escalation and convergence",
-                status=CapabilityStatus.IMPLEMENTED,
-                detail="Logical delta scoring, diagnosis reports, and operator hint capture are implemented.",
-            ),
-            CapabilityItem(
-                key="telemetry",
-                label="Live frontend telemetry",
-                status=CapabilityStatus.IMPLEMENTED,
-                detail="SSE event stream powers DAG, activity, budget, validation, and patch review views.",
-            ),
-            CapabilityItem(
-                key="rollback",
-                label="Safe rollback",
-                status=CapabilityStatus.IMPLEMENTED,
-                detail="Approved patches can be reverted only after content verification against the validated patch.",
-            ),
-            CapabilityItem(
-                key="auth",
-                label="Authentication and session isolation",
-                status=CapabilityStatus.MVP_ADAPTER,
-                detail=(
-                    "Signed bearer tokens, session-scoped tokens, strict CORS, "
-                    "and trusted host middleware are active."
-                ),
-            ),
-            CapabilityItem(
-                key="kubernetes_temporal",
-                label="Kubernetes, Temporal, Kafka, Argo",
-                status=CapabilityStatus.PLANNED,
-                detail="Production deployment substrate is documented but not provisioned in this local build.",
-            ),
-            CapabilityItem(
-                key="external_scanners",
-                label="Semgrep, OSV, Trivy, Checkov, Gitleaks, Syft",
-                status=CapabilityStatus.PLANNED,
-                detail="Local deterministic scanners exist; external CLI integrations remain adapter work.",
-            ),
-        ],
+    return build_system_capabilities(
+        settings=settings,
+        sandbox_engine=orchestrator._sandbox.engine_name,
+        llm_provider=orchestrator._llm_provider,
     ).model_dump(mode="json")
 
 
@@ -346,10 +262,10 @@ async def create_pr(
 ) -> dict:
     try:
         session = await orchestrator.get_session(session_id)
-        if not session.approved_patch_id:
+        if not session.approved_patch_ids:
             raise HTTPException(status_code=400, detail="No approved patch to create PR for.")
-        
-        patch = next((p for p in session.patches if p.patch_id == session.approved_patch_id), None)
+
+        patch = next((p for p in session.patches if p.patch_id == session.approved_patch_ids[-1]), None)
         if not patch:
             raise HTTPException(status_code=400, detail="Patch not found in session.")
             
@@ -383,29 +299,111 @@ async def export_to_azure(
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@app.get("/api/sessions/{session_id}/export/sarif")
+async def export_sarif(
+    session_id: str,
+    _principal: Annotated[Principal, Depends(require_auth)],
+) -> Response:
+    try:
+        from .sarif_export import session_to_sarif
+
+        session = await orchestrator.get_session(session_id)
+        sarif = session_to_sarif(session)
+        return Response(
+            content=json.dumps(sarif, indent=2),
+            media_type="application/sarif+json",
+            headers={
+                "Content-Disposition": f'attachment; filename="sentinel-{session_id}.sarif.json"'
+            },
+        )
+    except SessionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Session not found") from exc
+
+
+@app.get("/api/sessions/{session_id}/policy")
+async def get_patch_policy(
+    session_id: str,
+    _principal: Annotated[Principal, Depends(require_auth)],
+) -> dict:
+    try:
+        from .policy_gate import evaluate_patch_policy
+
+        session = await orchestrator.get_session(session_id)
+        patch = session.patches[-1] if session.patches else None
+        validation = session.validations[-1] if session.validations else None
+        if patch is None:
+            raise HTTPException(status_code=404, detail="No patch available for policy evaluation")
+        decision = evaluate_patch_policy(
+            patch=patch,
+            validation=validation,
+            confidence_threshold=settings.policy_confidence_threshold,
+        )
+        return {
+            "session_id": session_id,
+            "patch_id": patch.patch_id,
+            "auto_approve_eligible": decision.auto_approve_eligible,
+            "requires_human": decision.requires_human,
+            "reason": decision.reason,
+            "confidence_threshold": decision.confidence_threshold,
+            "engineer_confidence": patch.engineer_confidence,
+            "framework": "Microsoft Responsible AI — human-in-the-loop default",
+        }
+    except SessionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Session not found") from exc
+
+
 @app.get("/api/metrics")
 async def get_metrics_summary(_principal: Annotated[Principal, Depends(require_auth)]) -> dict:
+    from .models import SessionStatus, TaskStatus, Verdict
+
     sessions = await orchestrator._store.list()
     total = len(sessions)
     if total == 0:
-        return {"mttr_minutes": 0, "approval_rate": 0, "resolved_findings": 0, "total_findings": 0, "sandbox_pass_rate": 0}
-        
-    resolved = sum(1 for s in sessions if s.approved_patch_id)
+        return {
+            "mttr_minutes": 0,
+            "approval_rate": 0,
+            "resolved_findings": 0,
+            "total_findings": 0,
+            "sandbox_pass_rate": 0,
+        }
+
+    completed = [s for s in sessions if s.approved_patch_ids]
+    resolved = len(completed)
     total_findings = sum(len(s.memory.findings) for s in sessions if s.memory)
-    resolved_findings = sum(len(s.memory.findings) for s in sessions if s.memory and s.approved_patch_id)
-    
-    # Calculate MTTR (mocked slightly based on sessions for demo if too fast)
-    mttr = 12.5 # minutes average
-    
-    # Sandbox pass rate
-    pass_rate = 0.84 # realistic heuristic for demo
+    resolved_findings = sum(
+        len([t for t in s.tasks if t.status == TaskStatus.PASSED])
+        for s in sessions
+        if s.tasks
+    )
+
+    if completed:
+        durations = [
+            (s.updated_at - s.created_at).total_seconds() / 60 for s in completed
+        ]
+        mttr = round(sum(durations) / len(durations), 1)
+    else:
+        awaiting = [s for s in sessions if s.status == SessionStatus.AWAITING_APPROVAL and s.patches]
+        if awaiting:
+            durations = [
+                (s.updated_at - s.created_at).total_seconds() / 60 for s in awaiting
+            ]
+            mttr = round(sum(durations) / len(durations), 1)
+        else:
+            mttr = 0.0
+
+    all_validations = [v for s in sessions for v in s.validations]
+    pass_rate = (
+        sum(1 for v in all_validations if v.verdict == Verdict.APPROVE) / len(all_validations)
+        if all_validations
+        else 0.0
+    )
 
     return {
         "mttr_minutes": mttr,
         "approval_rate": resolved / total if total else 0,
         "resolved_findings": resolved_findings,
         "total_findings": total_findings,
-        "sandbox_pass_rate": pass_rate
+        "sandbox_pass_rate": round(pass_rate, 3),
     }
 
 

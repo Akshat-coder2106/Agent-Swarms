@@ -25,9 +25,13 @@ class ApiAuthTest(unittest.TestCase):
         self.assertEqual(capabilities_response.status_code, 200)
         payload = capabilities_response.json()
         self.assertFalse(payload["production_complete"])
+        self.assertIn("runtime", payload)
+        self.assertIn("sandbox_engine", payload["runtime"])
         self.assertTrue(
             any(item["status"] == "IMPLEMENTED" for item in payload["capabilities"])
         )
+        external = next(item for item in payload["capabilities"] if item["key"] == "external_scanners")
+        self.assertEqual(external["status"], "MVP_ADAPTER")
 
         unauthenticated = client.get("/api/system/capabilities")
         self.assertEqual(unauthenticated.status_code, 401)

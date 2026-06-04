@@ -75,7 +75,7 @@ class RollbackController:
         repo_path: str,
     ) -> None:
         """Start monitoring for regressions after patch deployment."""
-        if not session.approved_patch_id or session.approved_patch_id != patch.patch_id:
+        if patch.patch_id not in session.approved_patch_ids:
             return
 
         # Start monitoring task

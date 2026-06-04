@@ -290,6 +290,41 @@ input:focus {
 .dot-mvp_adapter { background: var(--accent-amber); box-shadow: 0 0 6px rgba(245,158,11,0.4); }
 .dot-planned { background: var(--text-muted); }
 
+.runtime-status {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.runtime-status-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.runtime-status-grid {
+  display: grid;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.runtime-status-grid strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.capability-summary small {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
 /* ═══ Command Bar ═══ */
 
 .command-bar {
