@@ -15,8 +15,8 @@ def generate_markdown_report(session: AuditSession) -> str:
     lines.append("## Executive Summary")
     lines.append(f"Sentinel identified **{len(session.findings)}** potential vulnerabilities. "
                  f"**{len(session.patches)}** patches were generated and validated in the sandbox.")
-    if session.approved_patch_id:
-        lines.append(f"Patch `{session.approved_patch_id}` was **APPROVED** and applied.")
+    if session.approved_patch_ids:
+        lines.append(f"Patches `{', '.join(session.approved_patch_ids)}` were **APPROVED** and applied.")
     lines.append("")
     
     lines.append("## Findings & OWASP Mapping")

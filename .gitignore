@@ -15,3 +15,5 @@ frontend/.vite/
 .env
 .env.*
 !.env.example
+
+benchmark-results.json

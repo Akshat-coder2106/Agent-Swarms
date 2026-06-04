@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
 
 class AgentRole(StrEnum):
@@ -118,6 +118,10 @@ def stable_json(value: Any) -> str:
 
 def sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+class SessionNotFoundError(KeyError):
+    """Raised when an audit session id is unknown."""
 
 
 class MCPMessage(BaseModel):
@@ -378,7 +382,28 @@ class AuditSession(BaseModel):
     events: list[AuditEvent] = Field(default_factory=list)
     diagnosis: DiagnosisReport | None = None
     rollback: RollbackReport | None = None
-    approved_patch_id: str | None = None
+    operator_hint: str | None = None
+    approved_patch_ids: list[str] = Field(default_factory=list)
+    validated_patch_ids: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _migrate_legacy_approval_fields(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        legacy = data.pop("approved_patch_id", None)
+        if legacy:
+            ids = list(data.get("approved_patch_ids") or [])
+            if legacy not in ids:
+                ids.append(legacy)
+            data["approved_patch_ids"] = ids
+        return data
+
+    @computed_field
+    @property
+    def approved_patch_id(self) -> str | None:
+        """Most recently operator-approved patch (backward compatible)."""
+        return self.approved_patch_ids[-1] if self.approved_patch_ids else None
 
 
 class AuditRequest(BaseModel):
@@ -447,10 +472,25 @@ class CapabilityItem(BaseModel):
     detail: str
 
 
+class RuntimeStatus(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    platform: str
+    sandbox_engine: str
+    sandbox_isolation: str
+    llm_provider: str
+    llm_enabled: bool
+    langgraph_enabled: bool
+    deterministic_rules: bool
+    external_scanners_available: list[str]
+    session_persistence: str
+
+
 class SystemCapabilities(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     spec_version: str
     production_complete: bool
     summary: str
+    runtime: RuntimeStatus
     capabilities: list[CapabilityItem]

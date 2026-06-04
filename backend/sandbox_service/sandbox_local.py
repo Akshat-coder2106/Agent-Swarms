@@ -19,8 +19,12 @@ from __future__ import annotations
 import logging
 import os
 import platform
-import resource
 import shutil
+
+try:
+    import resource as _resource
+except ImportError:  # Windows has no resource module
+    _resource = None
 import subprocess
 import tempfile
 import time
@@ -42,19 +46,23 @@ _RLIMIT_NOFILE = 128
 
 
 def _apply_resource_limits() -> None:
-    """Set resource limits for the child process.
+    """Set resource limits for the child process (Unix only).
 
     This runs as ``preexec_fn`` in ``subprocess.run`` and applies:
     - CPU time limit: 20 seconds
     - Maximum file size: 64 MB
     - Maximum open file descriptors: 128
+
+    On Windows the ``resource`` module is unavailable; subprocess timeout
+    and ephemeral workspaces still enforce isolation.
     """
+    if _resource is None:
+        return
     try:
-        resource.setrlimit(resource.RLIMIT_CPU, (_RLIMIT_CPU_SECONDS, _RLIMIT_CPU_SECONDS))
-        resource.setrlimit(resource.RLIMIT_FSIZE, (_RLIMIT_FSIZE_BYTES, _RLIMIT_FSIZE_BYTES))
-        resource.setrlimit(resource.RLIMIT_NOFILE, (_RLIMIT_NOFILE, _RLIMIT_NOFILE))
+        _resource.setrlimit(_resource.RLIMIT_CPU, (_RLIMIT_CPU_SECONDS, _RLIMIT_CPU_SECONDS))
+        _resource.setrlimit(_resource.RLIMIT_FSIZE, (_RLIMIT_FSIZE_BYTES, _RLIMIT_FSIZE_BYTES))
+        _resource.setrlimit(_resource.RLIMIT_NOFILE, (_RLIMIT_NOFILE, _RLIMIT_NOFILE))
     except (ValueError, OSError) as exc:
-        # Some limits may not be settable on all platforms
         logger.debug("Could not set all resource limits: %s", exc)
 
 

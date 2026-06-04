@@ -27,4 +27,8 @@ Not every item in `Project_Sentinel_FINAL_v4.md` is implemented as infrastructur
 
 - Implemented now: FastAPI API, typed MCP message envelopes, deterministic repository ingestion, local semantic retrieval, Python symbol graph extraction, scanner rules, four agent roles, sandbox validation, logical delta scoring, SSE telemetry, approval, rollback, signed bearer auth, strict CORS, and a professional operator UI.
 - Adapter layer: local memory and sandbox runners are intentionally shaped to be replaced by Qdrant, Neo4j, Firecracker, and Wasmtime.
-- Remaining infrastructure: Temporal durability, Kafka topics, Argo Workflows, Kubernetes namespace isolation, external scanner stack, OAuth provider integration, production secret mounting, OpenTelemetry exporters, and PagerDuty/JIRA integrations.
+- Remaining infrastructure: Temporal durability, Kafka topics, Argo Workflows, Kubernetes namespace isolation, OAuth provider integration, production secret mounting, OpenTelemetry exporters, and PagerDuty/JIRA integrations.
+
+## Runtime honesty
+
+`/api/system/capabilities` returns a `runtime` block with the active sandbox engine, LLM provider, and detected external scanner CLIs. The UI surfaces the same data so judges are not misled by README diagrams that show the full production topology.

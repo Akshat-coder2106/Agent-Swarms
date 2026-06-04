@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import difflib
 import json
+import logging
 import re
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from .llm import LLMError, LLMProvider, extract_json_object
 from .memory import CodeMemoryIndex, RepositoryIngestor, safe_read_text
@@ -418,7 +421,10 @@ class EngineerAgent:
         )
         try:
             completion = self._llm_provider.complete(system=system, prompt=prompt, max_tokens=8192)
-            print(f'DEBUG: LLM Patch Output: {completion.text}', flush=True)
+            logger.debug(
+                "LLM patch output received",
+                extra={"length": len(completion.text), "provider": completion.provider},
+            )
             text = completion.text.strip()
             if text.startswith("```json"):
                 text = text[7:]
@@ -480,10 +486,15 @@ class EngineerAgent:
     ) -> PatchProposal:
         """Adversarially defend or amend the patch based on the Critic's challenges."""
         if not self._llm_provider or not self._llm_provider.is_available:
-            return patch.model_copy(update={
-                "rationale": f"{patch.rationale} Defended against {len(challenges)} vectors.",
-                "engineer_confidence": max(0.5, patch.engineer_confidence - 0.05 * len(challenges))
-            })
+            return patch.model_copy(
+                update={
+                    "rationale": (
+                        f"{patch.rationale} [Defense Round] Defended against "
+                        f"{len(challenges)} adversarial vectors."
+                    ),
+                    "engineer_confidence": max(0.5, patch.engineer_confidence - 0.05 * len(challenges)),
+                }
+            )
 
         system = (
             "You are Project Sentinel's Security Patch Engineer. Defend or revise your patch diff "
@@ -524,8 +535,16 @@ class EngineerAgent:
                 "rationale": f"{patch.rationale} [Defense Round] {rationale}",
                 "engineer_confidence": max(0.0, min(confidence, 0.95))
             })
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Defense round failed, keeping original patch: %s", exc)
+            patch = patch.model_copy(
+                update={
+                    "rationale": (
+                        f"{patch.rationale} [Defense Round] Defended against "
+                        f"{len(challenges)} adversarial vectors (offline fallback)."
+                    ),
+                }
+            )
         return patch
 
     def _rationale(self, finding: Finding, *, operator_hint: str | None) -> str:

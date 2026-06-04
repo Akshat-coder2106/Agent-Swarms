@@ -10,7 +10,10 @@ async def main():
     orchestrator = SentinelOrchestrator(settings=settings)
     
     # 1. Create session
-    req = AuditRequest(repo_path="/Users/akshatagrawal/Desktop/Agent Swarms/examples/python-vulnerable-api", objective="Audit for demo")
+    req = AuditRequest(
+        repo_path="examples/python-vulnerable-api",
+        objective="Audit for demo",
+    )
     session = await orchestrator.create_session(req)
     queue = await orchestrator.event_bus.subscribe(session.session_id)
     

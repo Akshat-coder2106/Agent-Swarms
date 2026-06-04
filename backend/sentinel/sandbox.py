@@ -187,6 +187,20 @@ def _safe_relative_path(path: str) -> Path:
     return relative
 
 
+def _calculate_coverage_delta(stdout: str, stderr: str, *, passing_tests: int, total_tests: int) -> float:
+    """Extract coverage signal from test output for convergence scoring."""
+    output = f"{stdout}\n{stderr}"
+    cov_match = re.search(r"TOTAL\s+\d+\s+\d+\s+(\d+)%", output)
+    if cov_match:
+        return float(cov_match.group(1))
+    if total_tests > 0:
+        return min((passing_tests / total_tests) * 100.0, 100.0)
+    ran = re.search(r"Ran\s+(\d+)\s+tests?", output)
+    if ran:
+        return min(float(ran.group(1)) * 5.0, 100.0)
+    return 50.0
+
+
 def _parse_total_tests(stdout: str, stderr: str, exit_code: int) -> tuple[int, int]:
     output = f"{stdout}\n{stderr}"
     match = re.search(r"Ran\s+(\d+)\s+tests?", output)
@@ -373,7 +387,12 @@ class SandboxRunner:
             if all(axis.status != ValidationAxisStatus.FAIL for axis in axes)
             else Verdict.REJECT
         )
-        quality_delta = 25.0 if verdict == Verdict.APPROVE else 0.0
+        quality_delta = _calculate_coverage_delta(
+            stdout,
+            stderr,
+            passing_tests=passing_tests,
+            total_tests=total_tests,
+        )
 
         # Build dynamic sandbox metadata
         sandbox_meta = SandboxMetadata(

@@ -34,6 +34,18 @@ jobs:
         run: |
           pytest tests/ -v --cov=backend/sentinel --cov-report=xml
 
+      - name: Run reproducible benchmark (bundled fixture)
+        run: |
+          PYTHONPATH=backend python scripts/run_benchmark.py --output benchmark-results.json
+
+      - name: Upload benchmark artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ matrix.python-version }}
+          path: benchmark-results.json
+          if-no-files-found: ignore
+
       - name: Upload coverage
         uses: codecov/codecov-action@v4
         with:
