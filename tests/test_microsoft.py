@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import tempfile
 import unittest
-from pathlib import Path
 
 from sentinel.config import load_settings
 from sentinel.models import (
@@ -31,20 +30,21 @@ class MicrosoftIntegrationsTest(unittest.TestCase):
             cwe="CWE-89",
             remediation="Use parameterized queries.",
         )
-        session = AuditSession(
-            objective="test",
-            repo_path="/tmp/demo",
-            memory=RepositoryMemory(
-                root_path="/tmp/demo",
-                files_indexed=1,
-                chunks=[],
-                symbols=[],
-                edges=[],
-                findings=[finding],
-                validation_commands=[],
-            ),
-        )
-        sarif = session_to_sarif(session)
+        with tempfile.TemporaryDirectory() as repo_dir:
+            session = AuditSession(
+                objective="test",
+                repo_path=repo_dir,
+                memory=RepositoryMemory(
+                    root_path=repo_dir,
+                    files_indexed=1,
+                    chunks=[],
+                    symbols=[],
+                    edges=[],
+                    findings=[finding],
+                    validation_commands=[],
+                ),
+            )
+            sarif = session_to_sarif(session)
         self.assertEqual(sarif["version"], "2.1.0")
         self.assertEqual(len(sarif["runs"][0]["results"]), 1)
         self.assertEqual(sarif["runs"][0]["results"][0]["ruleId"], finding.rule_id)
@@ -52,15 +52,16 @@ class MicrosoftIntegrationsTest(unittest.TestCase):
     def test_sqlite_session_store_roundtrip(self) -> None:
         import asyncio
 
-        session = AuditSession(objective="persist", repo_path="/tmp/x")
+        with tempfile.TemporaryDirectory() as repo_dir:
+            session = AuditSession(objective="persist", repo_path=repo_dir)
 
-        async def _run() -> None:
-            store = SQLiteSessionStore(":memory:")
-            await store.create(session)
-            loaded = await store.get(session.session_id)
-            self.assertEqual(loaded.session_id, session.session_id)
+            async def _run() -> None:
+                store = SQLiteSessionStore(":memory:")
+                await store.create(session)
+                loaded = await store.get(session.session_id)
+                self.assertEqual(loaded.session_id, session.session_id)
 
-        asyncio.run(_run())
+            asyncio.run(_run())
 
     def test_policy_gate_requires_human_for_high_risk(self) -> None:
         from sentinel.models import (

@@ -6,8 +6,6 @@ import logging
 import re
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
-
 from .llm import LLMError, LLMProvider, extract_json_object
 from .memory import CodeMemoryIndex, RepositoryIngestor, safe_read_text
 from .models import (
@@ -25,6 +23,8 @@ from .models import (
     SandboxTier,
     ValidationResult,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def severity_to_priority(finding: Finding) -> Priority:

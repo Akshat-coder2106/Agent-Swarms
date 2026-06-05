@@ -12,9 +12,9 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from .capabilities import build_system_capabilities
 from .config import load_settings
 from .github_integration import GitHubIntegrationError, create_github_pr
-from .capabilities import build_system_capabilities
 from .models import (
     ApprovalRequest,
     AuditRequest,
@@ -22,12 +22,12 @@ from .models import (
     AuthTokenRequest,
     OperatorHintRequest,
     RollbackRequest,
+    SessionNotFoundError,
 )
-from .models import SessionNotFoundError
 from .orchestrator import ApprovalError, SentinelOrchestrator
-from .store_factory import build_session_store
 from .report_generator import generate_markdown_report
 from .security import AuthenticationError, Principal, bearer_from_header, issue_token, verify_token
+from .store_factory import build_session_store
 
 settings = load_settings()
 orchestrator = SentinelOrchestrator(settings=settings, store=build_session_store(settings))
