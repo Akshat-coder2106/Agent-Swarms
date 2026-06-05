@@ -222,7 +222,8 @@ type RiskAssessment = {
   provider: string;
 };
 
-const API_BASE = import.meta.env.VITE_SENTINEL_API_URL ?? "http://127.0.0.1:8000";
+const rawApiBase = import.meta.env.VITE_SENTINEL_API_URL ?? "http://127.0.0.1:8000";
+const API_BASE = rawApiBase.replace(/\/+$/, "");
 const DEFAULT_REPO = import.meta.env.VITE_DEFAULT_REPO_PATH ?? "examples/python-vulnerable-api";
 
 type DemoStep = {
