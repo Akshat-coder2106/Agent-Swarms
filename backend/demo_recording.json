@@ -1,14 +1,14 @@
 {
   "session": {
-    "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+    "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
     "objective": "Audit for demo",
     "repo_path": "/Users/akshatagrawal/Desktop/Agent Swarms/examples/python-vulnerable-api",
     "status": "ESCALATED",
-    "created_at": "2026-05-27T16:51:55.495694Z",
-    "updated_at": "2026-05-27T16:51:55.502567Z",
+    "created_at": "2026-06-05T12:55:55.499184Z",
+    "updated_at": "2026-06-05T12:56:00.210880Z",
     "memory": {
       "root_path": "/Users/akshatagrawal/Desktop/Agent Swarms/examples/python-vulnerable-api",
-      "files_indexed": 4,
+      "files_indexed": 3,
       "chunks": [
         {
           "chunk_id": "chunk_5e52f82711c4b061",
@@ -33,14 +33,6 @@
           "end_line": 4,
           "text": "{\n  \"setup_commands\": [[\"pip\", \"install\", \"flask\", \"pyyaml\"]],\n  \"validation_commands\": [[\"python3\", \"-m\", \"unittest\", \"discover\", \"-s\", \"tests\"]]\n}",
           "token_fingerprint": "e62cb9c42a74a91ca17b34554903f2c5f318b5ea96d8bcc947542e62940cba2f"
-        },
-        {
-          "chunk_id": "chunk_4e5ad92b6633f231",
-          "file_path": "tests/test_users.py",
-          "start_line": 1,
-          "end_line": 31,
-          "text": "from __future__ import annotations\n\nimport unittest\nfrom app.users import search_users, get_db_credentials, generate_reset_token, app\n\nclass VulnerableAppTests(unittest.TestCase):\n    def setUp(self):\n        self.client = app.test_client()\n\n    def test_search_by_name(self) -> None:\n        response = self.client.get(\"/search?name=Ada\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"results\"], [[1, \"Ada\"]])\n\n    def test_search_without_match(self) -> None:\n        response = self.client.get(\"/search?name=Katherine\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"results\"], [])\n        \n    def test_credentials(self) -> None:\n        aws, pwd = get_db_credentials()\n        self.assertTrue(len(aws) > 0)\n        self.assertTrue(len(pwd) > 0)\n        \n    def test_math(self) -> None:\n        response = self.client.get(\"/math?expr=5*5\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"result\"], 25)\n\nif __name__ == \"__main__\":\n    unittest.main()",
-          "token_fingerprint": "6c22a2c5016dcd12135be0d6f4b25096c3b330c1318d0ef7363bc92f87d64d89"
         }
       ],
       "symbols": [
@@ -107,60 +99,12 @@
           "file_path": "app/users.py",
           "start_line": 66,
           "end_line": 68
-        },
-        {
-          "symbol_id": "sym_6cc4d31ae84f587e",
-          "name": "VulnerableAppTests",
-          "kind": "class",
-          "file_path": "tests/test_users.py",
-          "start_line": 6,
-          "end_line": 28
-        },
-        {
-          "symbol_id": "sym_a3315f710fb74db5",
-          "name": "setUp",
-          "kind": "function",
-          "file_path": "tests/test_users.py",
-          "start_line": 7,
-          "end_line": 8
-        },
-        {
-          "symbol_id": "sym_b3611fc6ee0fbfc2",
-          "name": "test_search_by_name",
-          "kind": "function",
-          "file_path": "tests/test_users.py",
-          "start_line": 10,
-          "end_line": 13
-        },
-        {
-          "symbol_id": "sym_e852e6edd703ac9a",
-          "name": "test_search_without_match",
-          "kind": "function",
-          "file_path": "tests/test_users.py",
-          "start_line": 15,
-          "end_line": 18
-        },
-        {
-          "symbol_id": "sym_247ee0ca00ecf9b5",
-          "name": "test_credentials",
-          "kind": "function",
-          "file_path": "tests/test_users.py",
-          "start_line": 20,
-          "end_line": 23
-        },
-        {
-          "symbol_id": "sym_43654e1cc2a19d7b",
-          "name": "test_math",
-          "kind": "function",
-          "file_path": "tests/test_users.py",
-          "start_line": 25,
-          "end_line": 28
         }
       ],
       "edges": [],
       "findings": [
         {
-          "finding_id": "finding_feaf4cbccac6474c9544c3fecd67ff36",
+          "finding_id": "finding_6f09c6799870431c884250032eb0ba38",
           "rule_id": "python.sql_injection.fstring",
           "title": "SQL query uses f-string interpolation",
           "category": "INJECTION",
@@ -173,7 +117,7 @@
           "remediation": "Use parameterized database APIs instead of interpolating user input."
         },
         {
-          "finding_id": "finding_5e2c385561654122b2cccd18215fc75e",
+          "finding_id": "finding_0d030b40e6344de9960825145c4b438f",
           "rule_id": "python.insecure_deserialization.pickle",
           "title": "Pickle deserialization can execute attacker-controlled code",
           "category": "DESERIALIZATION",
@@ -186,7 +130,7 @@
           "remediation": "Replace pickle with a safe structured format such as JSON for untrusted data."
         },
         {
-          "finding_id": "finding_65acb6538a9b4adebb22b5c5db843fff",
+          "finding_id": "finding_9564567e31b74401b93479a0020274ec",
           "rule_id": "python.yaml_load",
           "title": "YAML load uses an unsafe loader",
           "category": "DESERIALIZATION",
@@ -199,7 +143,7 @@
           "remediation": "Use yaml.safe_load or yaml.load with SafeLoader."
         },
         {
-          "finding_id": "finding_8b8879edd75e45d6a3008010b77caa72",
+          "finding_id": "finding_0c016538e51c4f9fbbd8e143a390ab0a",
           "rule_id": "python.unsafe_execution",
           "title": "Dynamic code execution",
           "category": "UNSAFE_EXECUTION",
@@ -225,50 +169,50 @@
     },
     "tasks": [
       {
-        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+        "task_id": "task_626f123aaa2745d0b834517b4c792718",
         "title": "Remediate CWE-89",
         "objective": "SQL query uses f-string interpolation: Use parameterized database APIs instead of interpolating user input.",
         "target_path": "app/users.py",
         "priority": "HIGH",
         "status": "ESCALATED",
         "finding_ids": [
-          "finding_feaf4cbccac6474c9544c3fecd67ff36"
+          "finding_6f09c6799870431c884250032eb0ba38"
         ],
         "execution_profile": "SCRIPTED"
       },
       {
-        "task_id": "task_8cb1b8143ba5422682a3dbe7b4ac3eff",
+        "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
         "title": "Remediate CWE-502",
         "objective": "Pickle deserialization can execute attacker-controlled code: Replace pickle with a safe structured format such as JSON for untrusted data.",
         "target_path": "app/users.py",
         "priority": "CRITICAL",
-        "status": "PENDING",
+        "status": "ESCALATED",
         "finding_ids": [
-          "finding_5e2c385561654122b2cccd18215fc75e"
+          "finding_0d030b40e6344de9960825145c4b438f"
         ],
         "execution_profile": "SCRIPTED"
       },
       {
-        "task_id": "task_35e23eec66594cf8acb1da8f8695623d",
+        "task_id": "task_c49e657b846746c3af6280e3b5328f02",
         "title": "Remediate CWE-20",
         "objective": "YAML load uses an unsafe loader: Use yaml.safe_load or yaml.load with SafeLoader.",
         "target_path": "app/users.py",
         "priority": "HIGH",
-        "status": "PENDING",
+        "status": "ESCALATED",
         "finding_ids": [
-          "finding_65acb6538a9b4adebb22b5c5db843fff"
+          "finding_9564567e31b74401b93479a0020274ec"
         ],
         "execution_profile": "SCRIPTED"
       },
       {
-        "task_id": "task_fe0ee01b3baa4c8182947a6db0c3aead",
+        "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
         "title": "Remediate CWE-94",
         "objective": "Dynamic code execution: Replace dynamic execution with explicit parsing or a constrained evaluator.",
         "target_path": "app/users.py",
         "priority": "HIGH",
-        "status": "PENDING",
+        "status": "ESCALATED",
         "finding_ids": [
-          "finding_8b8879edd75e45d6a3008010b77caa72"
+          "finding_0c016538e51c4f9fbbd8e143a390ab0a"
         ],
         "execution_profile": "SCRIPTED"
       }
@@ -276,10 +220,10 @@
     "messages": [
       {
         "mcp_version": "1.2",
-        "message_id": "msg_5cd8e982220743638a74d1b4fe883137",
-        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
-        "task_id": "task_4f57a12b29464c1db9b068a03979c0bc",
-        "timestamp": "2026-05-27T16:51:55.501618Z",
+        "message_id": "msg_d21023985c854a9e803fdbc73dfe7756",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "task_id": "task_326e5c6d2b1b48b78bc5fe0a4016c31b",
+        "timestamp": "2026-06-05T12:55:55.509157Z",
         "sender": "architect",
         "recipient": "scout",
         "message_type": "TASK_ASSIGNMENT",
@@ -295,10 +239,10 @@
       },
       {
         "mcp_version": "1.2",
-        "message_id": "msg_be280067457d4272bf5dfdf35b92f0a6",
-        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
-        "task_id": "task_1d5e2d04422748908295c6974217b0da",
-        "timestamp": "2026-05-27T16:51:55.501677Z",
+        "message_id": "msg_c55776b807604e3c9cbe82f9e30c0fb6",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "task_id": "task_39afc1c8058241ab9bbc4efb464eab88",
+        "timestamp": "2026-06-05T12:55:55.509211Z",
         "sender": "architect",
         "recipient": "scout",
         "message_type": "TASK_ASSIGNMENT",
@@ -314,10 +258,10 @@
       },
       {
         "mcp_version": "1.2",
-        "message_id": "msg_ebe74cde2c7a4106bb99687b476f1501",
-        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
-        "task_id": "task_8573fd2419b44c358cd1958b8588af46",
-        "timestamp": "2026-05-27T16:51:55.501717Z",
+        "message_id": "msg_a5a4845f93674e568978720b062d5118",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "task_id": "task_0dda17047c5e4c33912a1dfb65ae1c55",
+        "timestamp": "2026-06-05T12:55:55.509250Z",
         "sender": "architect",
         "recipient": "scout",
         "message_type": "TASK_ASSIGNMENT",
@@ -333,10 +277,86 @@
       },
       {
         "mcp_version": "1.2",
-        "message_id": "msg_9d333c464a9e4d29abaa63f81aac236b",
-        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
-        "task_id": "task_f2058472fab74c36afbaa2fc722d8fb7",
-        "timestamp": "2026-05-27T16:51:55.501745Z",
+        "message_id": "msg_7f86207d3da242a7a345846980f736cb",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "task_id": "task_42b79d0b557645b29b521ee3d5975992",
+        "timestamp": "2026-06-05T12:55:55.509278Z",
+        "sender": "architect",
+        "recipient": "scout",
+        "message_type": "TASK_ASSIGNMENT",
+        "priority": "HIGH",
+        "payload": {
+          "target_path": "app/users.py",
+          "objective": "Dynamic code execution: Replace dynamic execution with explicit parsing or a constrained evaluator.",
+          "execution_profile": "SCRIPTED",
+          "max_tokens_budget": 50000
+        },
+        "checksum": "fd10873c0a4e39a32b9620ca2c8619601438d98362c20727dd885c9073cdde8e",
+        "computed_checksum": "fd10873c0a4e39a32b9620ca2c8619601438d98362c20727dd885c9073cdde8e"
+      },
+      {
+        "mcp_version": "1.2",
+        "message_id": "msg_24fe247efc9a4189855c9988c093417f",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "task_id": "task_626f123aaa2745d0b834517b4c792718",
+        "timestamp": "2026-06-05T12:55:55.509339Z",
+        "sender": "architect",
+        "recipient": "scout",
+        "message_type": "TASK_ASSIGNMENT",
+        "priority": "HIGH",
+        "payload": {
+          "target_path": "app/users.py",
+          "objective": "SQL query uses f-string interpolation: Use parameterized database APIs instead of interpolating user input.",
+          "execution_profile": "SCRIPTED",
+          "max_tokens_budget": 50000
+        },
+        "checksum": "bda121e0ac9978e1bf11d70cc2db2c6ac02fe304084ad5f158f9184c2887394f",
+        "computed_checksum": "bda121e0ac9978e1bf11d70cc2db2c6ac02fe304084ad5f158f9184c2887394f"
+      },
+      {
+        "mcp_version": "1.2",
+        "message_id": "msg_0ae77373a387461ba4caf08a24ac3b60",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+        "timestamp": "2026-06-05T12:55:55.509365Z",
+        "sender": "architect",
+        "recipient": "scout",
+        "message_type": "TASK_ASSIGNMENT",
+        "priority": "CRITICAL",
+        "payload": {
+          "target_path": "app/users.py",
+          "objective": "Pickle deserialization can execute attacker-controlled code: Replace pickle with a safe structured format such as JSON for untrusted data.",
+          "execution_profile": "SCRIPTED",
+          "max_tokens_budget": 50000
+        },
+        "checksum": "bb8136cb8cf8eedf867cecfaa6ab3eee06fbfcbc2c583b65b1fe00f1eb4e4020",
+        "computed_checksum": "bb8136cb8cf8eedf867cecfaa6ab3eee06fbfcbc2c583b65b1fe00f1eb4e4020"
+      },
+      {
+        "mcp_version": "1.2",
+        "message_id": "msg_4f531cb600864f05815a7d247f304e04",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+        "timestamp": "2026-06-05T12:55:55.509387Z",
+        "sender": "architect",
+        "recipient": "scout",
+        "message_type": "TASK_ASSIGNMENT",
+        "priority": "HIGH",
+        "payload": {
+          "target_path": "app/users.py",
+          "objective": "YAML load uses an unsafe loader: Use yaml.safe_load or yaml.load with SafeLoader.",
+          "execution_profile": "SCRIPTED",
+          "max_tokens_budget": 50000
+        },
+        "checksum": "b742da83634fe20a5457ffbe63e142ec9a56c148dd4a64e7161097e0238b3fff",
+        "computed_checksum": "b742da83634fe20a5457ffbe63e142ec9a56c148dd4a64e7161097e0238b3fff"
+      },
+      {
+        "mcp_version": "1.2",
+        "message_id": "msg_c9d58b7a91444639b8db24bfe5a6f788",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+        "timestamp": "2026-06-05T12:55:55.509408Z",
         "sender": "architect",
         "recipient": "scout",
         "message_type": "TASK_ASSIGNMENT",
@@ -351,15 +371,358 @@
         "computed_checksum": "fd10873c0a4e39a32b9620ca2c8619601438d98362c20727dd885c9073cdde8e"
       }
     ],
-    "patches": [],
-    "validations": [],
-    "delta_history": [],
+    "patches": [
+      {
+        "patch_id": "patch_6204969ebbdd4e028741b5424ac9fb20",
+        "task_id": "task_626f123aaa2745d0b834517b4c792718",
+        "iteration": 1,
+        "files": [
+          {
+            "file_path": "app/users.py",
+            "original": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "patched": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    rows = db_conn.execute('SELECT id, name FROM users WHERE name LIKE ?', (f\"%{name}%\",)).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "original_sha256": "df174e190582957ee523e0c2dfec3c1371598ff9064daed6c868dc1cd9d2ba2c",
+            "patched_sha256": "f3bf7c9626742246bbc955a25f8b50a2cf95a4703e5419ba741aca17167ceb92"
+          }
+        ],
+        "unified_diff": "--- a/app/users.py\n+++ b/app/users.py\n@@ -28,8 +28,7 @@\n @app.route(\"/search\")\n def search_users():\n     name = request.args.get(\"name\", \"\")\n-    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n-    rows = db_conn.execute(query).fetchall()\n+    rows = db_conn.execute('SELECT id, name FROM users WHERE name LIKE ?', (f\"%{name}%\",)).fetchall()\n     return {\"results\": rows}\n \n # 3. Path Traversal\n",
+        "rationale": "Addresses CWE-89 by replacing unsafe data flow with a deterministic safer pattern. Original issue: SQL query uses f-string interpolation. Generated by deterministic-rule. [Defense Round] Defended against 3 adversarial vectors.",
+        "risk": "MEDIUM",
+        "engineer_confidence": 0.75
+      },
+      {
+        "patch_id": "patch_3148d2db27434fb69d0d9cf527b80898",
+        "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+        "iteration": 1,
+        "files": [
+          {
+            "file_path": "app/users.py",
+            "original": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "patched": "from __future__ import annotations\n\nimport sqlite3\nimport json\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = json.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "original_sha256": "df174e190582957ee523e0c2dfec3c1371598ff9064daed6c868dc1cd9d2ba2c",
+            "patched_sha256": "50c38c7f27c7ca7e046700196be8c91f76acf89480e8d26e28aa429fa738c632"
+          }
+        ],
+        "unified_diff": "--- a/app/users.py\n+++ b/app/users.py\n@@ -1,7 +1,7 @@\n from __future__ import annotations\n \n import sqlite3\n-import pickle\n+import json\n import os\n import random\n import yaml\n@@ -43,7 +43,7 @@\n def load_config():\n     data = request.get_data()\n     # Vulnerable to RCE\n-    config = pickle.loads(data)\n+    config = json.loads(data)\n     return {\"status\": \"success\", \"config\": config}\n \n # 5. YAML Deserialization\n",
+        "rationale": "Addresses CWE-502 by replacing unsafe data flow with a deterministic safer pattern. Original issue: Pickle deserialization can execute attacker-controlled code. Generated by deterministic-rule. [Defense Round] Defended against 3 adversarial vectors.",
+        "risk": "MEDIUM",
+        "engineer_confidence": 0.73
+      },
+      {
+        "patch_id": "patch_240cdebdf3664dc5aaabff8aa3d35ab6",
+        "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+        "iteration": 1,
+        "files": [
+          {
+            "file_path": "app/users.py",
+            "original": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "patched": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.safe_load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "original_sha256": "df174e190582957ee523e0c2dfec3c1371598ff9064daed6c868dc1cd9d2ba2c",
+            "patched_sha256": "7c2ddbbc1b79d5c84f15972a08d33707287c2b93eb70a9cb328bfff64aa75775"
+          }
+        ],
+        "unified_diff": "--- a/app/users.py\n+++ b/app/users.py\n@@ -51,7 +51,7 @@\n def parse_yaml():\n     data = request.get_data()\n     # Vulnerable to RCE\n-    parsed = yaml.load(data, Loader=yaml.Loader)\n+    parsed = yaml.safe_load(data, Loader=yaml.Loader)\n     return {\"status\": \"success\", \"parsed\": parsed}\n \n # 6. Unsafe Exec/Eval\n",
+        "rationale": "Addresses CWE-20 by replacing unsafe data flow with a deterministic safer pattern. Original issue: YAML load uses an unsafe loader. Generated by deterministic-rule. [Defense Round] Defended against 3 adversarial vectors.",
+        "risk": "MEDIUM",
+        "engineer_confidence": 0.73
+      },
+      {
+        "patch_id": "patch_b0aece899d4f472294ada69bea9543f2",
+        "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+        "iteration": 1,
+        "files": [
+          {
+            "file_path": "app/users.py",
+            "original": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "patched": "import ast\nfrom __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = ast.literal_eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "original_sha256": "df174e190582957ee523e0c2dfec3c1371598ff9064daed6c868dc1cd9d2ba2c",
+            "patched_sha256": "b68893044c13f1418b27f631ca43cfa9a6dff31554d5d8385d387e52de9917d7"
+          }
+        ],
+        "unified_diff": "--- a/app/users.py\n+++ b/app/users.py\n@@ -1,3 +1,4 @@\n+import ast\n from __future__ import annotations\n \n import sqlite3\n@@ -59,7 +60,7 @@\n def calculate():\n     expression = request.args.get(\"expr\", \"1+1\")\n     # Vulnerable to RCE\n-    result = eval(expression)\n+    result = ast.literal_eval(expression)\n     return {\"result\": result}\n \n # 7. Weak Random\n",
+        "rationale": "Addresses CWE-94 by replacing unsafe data flow with a deterministic safer pattern. Original issue: Dynamic code execution. Generated by deterministic-rule. [Defense Round] Defended against 3 adversarial vectors.",
+        "risk": "MEDIUM",
+        "engineer_confidence": 0.73
+      }
+    ],
+    "validations": [
+      {
+        "validation_id": "validation_35dc442bd5a84409816eb6c8d05fb54e",
+        "task_id": "task_626f123aaa2745d0b834517b4c792718",
+        "patch_id": "patch_6204969ebbdd4e028741b5424ac9fb20",
+        "verdict": "REJECT",
+        "axes": [
+          {
+            "name": "patch_integrity",
+            "status": "PASS",
+            "detail": "Patch applied and verified in isolated sandbox workspace."
+          },
+          {
+            "name": "pre_existing_tests",
+            "status": "FAIL",
+            "detail": "Validation commands exited 1; 0/1 parsed tests passing."
+          },
+          {
+            "name": "static_rescan",
+            "status": "FAIL",
+            "detail": "1/4 targeted findings resolved."
+          },
+          {
+            "name": "patch_scope",
+            "status": "PASS",
+            "detail": "1 file(s) changed."
+          },
+          {
+            "name": "sandbox_isolation",
+            "status": "PASS",
+            "detail": "Executed in process-sandbox sandbox with process isolation."
+          },
+          {
+            "name": "auditability",
+            "status": "PASS",
+            "detail": "Diff, stdout, stderr, exit code, and static findings are machine-readable."
+          }
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "E\n======================================================================\nERROR: test_users (unittest.loader._FailedTest.test_users)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_users\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 396, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 339, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_ouypax_x/tests/test_users.py\", line 4, in <module>\n    from app.users import search_users, get_db_credentials, generate_reset_token, app\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_ouypax_x/app/users.py\", line 8, in <module>\n    from flask import Flask, request, send_file, render_template_string\nModuleNotFoundError: No module named 'flask'\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+        "passing_tests": 0,
+        "total_tests": 1,
+        "resolved_findings": 1,
+        "total_findings": 4,
+        "coverage_delta": 0.0,
+        "duration_ms": 184,
+        "sandbox_metadata": {
+          "engine": "process-sandbox",
+          "boot_time_ms": 94,
+          "vsock_status": "N/A",
+          "vcpu_count": 1,
+          "memory_mb": 256,
+          "snapshot_used": false,
+          "isolation_level": "process",
+          "workspace_path": ""
+        }
+      },
+      {
+        "validation_id": "validation_c11aa64256314583889d958edfd11868",
+        "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+        "patch_id": "patch_3148d2db27434fb69d0d9cf527b80898",
+        "verdict": "REJECT",
+        "axes": [
+          {
+            "name": "patch_integrity",
+            "status": "PASS",
+            "detail": "Patch applied and verified in isolated sandbox workspace."
+          },
+          {
+            "name": "pre_existing_tests",
+            "status": "FAIL",
+            "detail": "Validation commands exited 1; 0/1 parsed tests passing."
+          },
+          {
+            "name": "static_rescan",
+            "status": "FAIL",
+            "detail": "1/4 targeted findings resolved."
+          },
+          {
+            "name": "patch_scope",
+            "status": "PASS",
+            "detail": "1 file(s) changed."
+          },
+          {
+            "name": "sandbox_isolation",
+            "status": "PASS",
+            "detail": "Executed in process-sandbox sandbox with process isolation."
+          },
+          {
+            "name": "auditability",
+            "status": "PASS",
+            "detail": "Diff, stdout, stderr, exit code, and static findings are machine-readable."
+          }
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "E\n======================================================================\nERROR: test_users (unittest.loader._FailedTest.test_users)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_users\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 396, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 339, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_rw16ij44/tests/test_users.py\", line 4, in <module>\n    from app.users import search_users, get_db_credentials, generate_reset_token, app\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_rw16ij44/app/users.py\", line 8, in <module>\n    from flask import Flask, request, send_file, render_template_string\nModuleNotFoundError: No module named 'flask'\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+        "passing_tests": 0,
+        "total_tests": 1,
+        "resolved_findings": 1,
+        "total_findings": 4,
+        "coverage_delta": 0.0,
+        "duration_ms": 183,
+        "sandbox_metadata": {
+          "engine": "process-sandbox",
+          "boot_time_ms": 94,
+          "vsock_status": "N/A",
+          "vcpu_count": 1,
+          "memory_mb": 256,
+          "snapshot_used": false,
+          "isolation_level": "process",
+          "workspace_path": ""
+        }
+      },
+      {
+        "validation_id": "validation_12d8cc3fb8b04711a425ffcd40f6b7bb",
+        "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+        "patch_id": "patch_240cdebdf3664dc5aaabff8aa3d35ab6",
+        "verdict": "REJECT",
+        "axes": [
+          {
+            "name": "patch_integrity",
+            "status": "PASS",
+            "detail": "Patch applied and verified in isolated sandbox workspace."
+          },
+          {
+            "name": "pre_existing_tests",
+            "status": "FAIL",
+            "detail": "Validation commands exited 1; 0/1 parsed tests passing."
+          },
+          {
+            "name": "static_rescan",
+            "status": "FAIL",
+            "detail": "1/4 targeted findings resolved."
+          },
+          {
+            "name": "patch_scope",
+            "status": "PASS",
+            "detail": "1 file(s) changed."
+          },
+          {
+            "name": "sandbox_isolation",
+            "status": "PASS",
+            "detail": "Executed in process-sandbox sandbox with process isolation."
+          },
+          {
+            "name": "auditability",
+            "status": "PASS",
+            "detail": "Diff, stdout, stderr, exit code, and static findings are machine-readable."
+          }
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "E\n======================================================================\nERROR: test_users (unittest.loader._FailedTest.test_users)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_users\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 396, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 339, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_3ul2v3qu/tests/test_users.py\", line 4, in <module>\n    from app.users import search_users, get_db_credentials, generate_reset_token, app\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_3ul2v3qu/app/users.py\", line 8, in <module>\n    from flask import Flask, request, send_file, render_template_string\nModuleNotFoundError: No module named 'flask'\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+        "passing_tests": 0,
+        "total_tests": 1,
+        "resolved_findings": 1,
+        "total_findings": 4,
+        "coverage_delta": 0.0,
+        "duration_ms": 179,
+        "sandbox_metadata": {
+          "engine": "process-sandbox",
+          "boot_time_ms": 90,
+          "vsock_status": "N/A",
+          "vcpu_count": 1,
+          "memory_mb": 256,
+          "snapshot_used": false,
+          "isolation_level": "process",
+          "workspace_path": ""
+        }
+      },
+      {
+        "validation_id": "validation_03c91153171748a9a9a64cd938fb2547",
+        "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+        "patch_id": "patch_b0aece899d4f472294ada69bea9543f2",
+        "verdict": "REJECT",
+        "axes": [
+          {
+            "name": "patch_integrity",
+            "status": "PASS",
+            "detail": "Patch applied and verified in isolated sandbox workspace."
+          },
+          {
+            "name": "pre_existing_tests",
+            "status": "FAIL",
+            "detail": "Validation commands exited 1; 0/1 parsed tests passing."
+          },
+          {
+            "name": "static_rescan",
+            "status": "FAIL",
+            "detail": "1/4 targeted findings resolved."
+          },
+          {
+            "name": "patch_scope",
+            "status": "PASS",
+            "detail": "1 file(s) changed."
+          },
+          {
+            "name": "sandbox_isolation",
+            "status": "PASS",
+            "detail": "Executed in process-sandbox sandbox with process isolation."
+          },
+          {
+            "name": "auditability",
+            "status": "PASS",
+            "detail": "Diff, stdout, stderr, exit code, and static findings are machine-readable."
+          }
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "E\n======================================================================\nERROR: test_users (unittest.loader._FailedTest.test_users)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_users\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 396, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 339, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_l0x0w6ex/tests/test_users.py\", line 4, in <module>\n    from app.users import search_users, get_db_credentials, generate_reset_token, app\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_l0x0w6ex/app/users.py\", line 2\n    from __future__ import annotations\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nSyntaxError: from __future__ imports must occur at the beginning of the file\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+        "passing_tests": 0,
+        "total_tests": 1,
+        "resolved_findings": 1,
+        "total_findings": 4,
+        "coverage_delta": 0.0,
+        "duration_ms": 146,
+        "sandbox_metadata": {
+          "engine": "process-sandbox",
+          "boot_time_ms": 72,
+          "vsock_status": "N/A",
+          "vcpu_count": 1,
+          "memory_mb": 256,
+          "snapshot_used": false,
+          "isolation_level": "process",
+          "workspace_path": ""
+        }
+      }
+    ],
+    "delta_history": [
+      {
+        "iteration": 2,
+        "delta": 0.075,
+        "accumulated_delta": 0.075,
+        "passing_tests": 0,
+        "total_tests": 1,
+        "resolved_findings": 1,
+        "total_findings": 4,
+        "coverage_delta": 0.0
+      },
+      {
+        "iteration": 2,
+        "delta": 0.075,
+        "accumulated_delta": 0.075,
+        "passing_tests": 0,
+        "total_tests": 1,
+        "resolved_findings": 1,
+        "total_findings": 4,
+        "coverage_delta": 0.0
+      },
+      {
+        "iteration": 2,
+        "delta": 0.075,
+        "accumulated_delta": 0.075,
+        "passing_tests": 0,
+        "total_tests": 1,
+        "resolved_findings": 1,
+        "total_findings": 4,
+        "coverage_delta": 0.0
+      },
+      {
+        "iteration": 2,
+        "delta": 0.075,
+        "accumulated_delta": 0.075,
+        "passing_tests": 0,
+        "total_tests": 1,
+        "resolved_findings": 1,
+        "total_findings": 4,
+        "coverage_delta": 0.0
+      }
+    ],
     "events": [
       {
-        "event_id": "evt_04c8057043e1493eba3ba02599183b3e",
-        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "event_id": "evt_ee747ceb8dfe438f9b3843edc6772aac",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
         "event_type": "AUDIT_LOG",
-        "timestamp": "2026-05-27T16:51:55.495975Z",
+        "timestamp": "2026-06-05T12:55:55.499410Z",
         "agent": "router",
         "task_id": null,
         "payload": {
@@ -369,16 +732,16 @@
         }
       },
       {
-        "event_id": "evt_4e1c0fbd3a44401482808acf5bbba6fa",
-        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "event_id": "evt_4b1d9a959f2c4e90a6839ee1b4fc93e3",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
         "event_type": "ARCHITECT_UPDATE",
-        "timestamp": "2026-05-27T16:51:55.501566Z",
+        "timestamp": "2026-06-05T12:55:55.509113Z",
         "agent": "architect",
         "task_id": null,
         "payload": {
           "status": "repository_ingested",
-          "files_indexed": 4,
-          "symbols": 14,
+          "files_indexed": 3,
+          "symbols": 8,
           "graph_edges": 0,
           "findings": 4,
           "validation_commands": [
@@ -394,89 +757,43 @@
         }
       },
       {
-        "event_id": "evt_3c5da763291e48638e49d674bfb6101d",
-        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "event_id": "evt_ed2f1eb24ce54b78ad75d5c3ec81091c",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
         "event_type": "BUDGET_UPDATE",
-        "timestamp": "2026-05-27T16:51:55.501783Z",
+        "timestamp": "2026-06-05T12:55:55.509317Z",
         "agent": "router",
         "task_id": null,
         "payload": {
-          "tokens_consumed": 826,
-          "tokens_remaining": 1999174,
+          "tokens_consumed": 554,
+          "tokens_remaining": 1999446,
           "token_budget": 2000000,
-          "estimated_cost_usd": 0.0012
+          "estimated_cost_usd": 0.0008
         }
       },
       {
-        "event_id": "evt_be5e4d1ad1204d2ca69ac87ef56bb7dc",
-        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
-        "event_type": "AUDIT_LOG",
-        "timestamp": "2026-05-27T16:51:55.502431Z",
-        "agent": "router",
-        "task_id": null,
-        "payload": {
-          "message": "Graph state machine executed",
-          "engine": "sequential-compatible-graph",
-          "trace": [
-            {
-              "agent": "architect",
-              "action": "planned_tasks",
-              "payload": {
-                "task_count": 4
-              }
-            },
-            {
-              "agent": "scout",
-              "action": "retrieved_evidence",
-              "payload": {
-                "finding": "python.sql_injection.fstring",
-                "chunks": 2
-              }
-            },
-            {
-              "agent": "engineer",
-              "action": "patch_generation_failed",
-              "payload": {
-                "error": "PatchGenerationError",
-                "message": "No deterministic or configured LLM patch available for python.sql_injection.fstring"
-              }
-            },
-            {
-              "agent": "router",
-              "action": "terminal_completion",
-              "payload": {
-                "engine": "sequential-compatible-graph"
-              }
-            }
-          ]
-        }
-      },
-      {
-        "event_id": "evt_13a92f790ada40d881bd5c987532e7c2",
-        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "event_id": "evt_3cb9fab106e64ce99a0fa933dc62e72c",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
         "event_type": "ARCHITECT_UPDATE",
-        "timestamp": "2026-05-27T16:51:55.502453Z",
+        "timestamp": "2026-06-05T12:55:56.775331Z",
         "agent": "architect",
-        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+        "task_id": "task_626f123aaa2745d0b834517b4c792718",
         "payload": {
-          "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+          "task_id": "task_626f123aaa2745d0b834517b4c792718",
           "target_path": "app/users.py",
-          "status": "ACTIVE",
-          "priority": "HIGH",
           "graph_engine": "sequential-compatible-graph"
         }
       },
       {
-        "event_id": "evt_703f22557fc6499d81c11d7b8ae2386f",
-        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+        "event_id": "evt_0b957dd3550c461db1be5a4bea2427f7",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
         "event_type": "SCOUT_RETRIEVAL",
-        "timestamp": "2026-05-27T16:51:55.502523Z",
+        "timestamp": "2026-06-05T12:55:56.775441Z",
         "agent": "scout",
-        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+        "task_id": "task_626f123aaa2745d0b834517b4c792718",
         "payload": {
-          "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+          "task_id": "task_626f123aaa2745d0b834517b4c792718",
           "finding": {
-            "finding_id": "finding_feaf4cbccac6474c9544c3fecd67ff36",
+            "finding_id": "finding_6f09c6799870431c884250032eb0ba38",
             "rule_id": "python.sql_injection.fstring",
             "title": "SQL query uses f-string interpolation",
             "category": "INJECTION",
@@ -496,14 +813,6 @@
               "end_line": 71,
               "text": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)",
               "token_fingerprint": "a103b27a5eaf278b1ce7215e027e9e270316d7399a61cdd898b80f9a986f6ae7"
-            },
-            {
-              "chunk_id": "chunk_4e5ad92b6633f231",
-              "file_path": "tests/test_users.py",
-              "start_line": 1,
-              "end_line": 31,
-              "text": "from __future__ import annotations\n\nimport unittest\nfrom app.users import search_users, get_db_credentials, generate_reset_token, app\n\nclass VulnerableAppTests(unittest.TestCase):\n    def setUp(self):\n        self.client = app.test_client()\n\n    def test_search_by_name(self) -> None:\n        response = self.client.get(\"/search?name=Ada\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"results\"], [[1, \"Ada\"]])\n\n    def test_search_without_match(self) -> None:\n        response = self.client.get(\"/search?name=Katherine\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"results\"], [])\n        \n    def test_credentials(self) -> None:\n        aws, pwd = get_db_credentials()\n        self.assertTrue(len(aws) > 0)\n        self.assertTrue(len(pwd) > 0)\n        \n    def test_math(self) -> None:\n        response = self.client.get(\"/math?expr=5*5\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"result\"], 25)\n\nif __name__ == \"__main__\":\n    unittest.main()",
-              "token_fingerprint": "6c22a2c5016dcd12135be0d6f4b25096c3b330c1318d0ef7363bc92f87d64d89"
             }
           ],
           "related_symbols": [
@@ -573,63 +882,742 @@
             }
           ],
           "graph_neighbors": [],
-          "static_scan_count": 4
+          "static_scan_count": 4,
+          "cve_context": null
         }
       },
       {
-        "event_id": "evt_7a347598742742eabe8f629ec1de0bd9",
-        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
-        "event_type": "ESCALATION",
-        "timestamp": "2026-05-27T16:51:55.502559Z",
-        "agent": "router",
-        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+        "event_id": "evt_a92844288552436fa1091457a20a3f89",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "ENGINEER_PATCH",
+        "timestamp": "2026-06-05T12:55:56.775476Z",
+        "agent": "engineer",
+        "task_id": "task_626f123aaa2745d0b834517b4c792718",
         "payload": {
-          "escalation_id": "esc_31269f27fa6541d5aa82a3f4478f7057",
-          "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
-          "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
-          "iteration_count": 1,
-          "logical_delta_history": [],
-          "deadlock_type": "CONVERGED_BELOW_THRESHOLD",
-          "last_failing_test": null,
-          "last_stack_trace": null,
-          "last_critic_directive": "Patch generation failed: No deterministic or configured LLM patch available for python.sql_injection.fstring",
-          "last_engineer_diff": "",
-          "suggested_hint": "Check LLM provider configuration or add a deterministic remediation rule.",
-          "tokens_consumed": 0,
-          "tokens_remaining": 2000000
+          "patch_id": "patch_6204969ebbdd4e028741b5424ac9fb20",
+          "task_id": "task_626f123aaa2745d0b834517b4c792718",
+          "iteration": 1,
+          "files": [
+            {
+              "file_path": "app/users.py",
+              "original": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+              "patched": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    rows = db_conn.execute('SELECT id, name FROM users WHERE name LIKE ?', (f\"%{name}%\",)).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+              "original_sha256": "df174e190582957ee523e0c2dfec3c1371598ff9064daed6c868dc1cd9d2ba2c",
+              "patched_sha256": "f3bf7c9626742246bbc955a25f8b50a2cf95a4703e5419ba741aca17167ceb92"
+            }
+          ],
+          "unified_diff": "--- a/app/users.py\n+++ b/app/users.py\n@@ -28,8 +28,7 @@\n @app.route(\"/search\")\n def search_users():\n     name = request.args.get(\"name\", \"\")\n-    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n-    rows = db_conn.execute(query).fetchall()\n+    rows = db_conn.execute('SELECT id, name FROM users WHERE name LIKE ?', (f\"%{name}%\",)).fetchall()\n     return {\"results\": rows}\n \n # 3. Path Traversal\n",
+          "rationale": "Addresses CWE-89 by replacing unsafe data flow with a deterministic safer pattern. Original issue: SQL query uses f-string interpolation. Generated by deterministic-rule. [Defense Round] Defended against 3 adversarial vectors.",
+          "risk": "MEDIUM",
+          "engineer_confidence": 0.75
+        }
+      },
+      {
+        "event_id": "evt_0ce9b83766a64300818c818d0fb2d101",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "SANDBOX_RESULT",
+        "timestamp": "2026-06-05T12:55:56.775508Z",
+        "agent": "router",
+        "task_id": "task_626f123aaa2745d0b834517b4c792718",
+        "payload": {
+          "validation_id": "validation_35dc442bd5a84409816eb6c8d05fb54e",
+          "task_id": "task_626f123aaa2745d0b834517b4c792718",
+          "patch_id": "patch_6204969ebbdd4e028741b5424ac9fb20",
+          "verdict": "REJECT",
+          "axes": [
+            {
+              "name": "patch_integrity",
+              "status": "PASS",
+              "detail": "Patch applied and verified in isolated sandbox workspace."
+            },
+            {
+              "name": "pre_existing_tests",
+              "status": "FAIL",
+              "detail": "Validation commands exited 1; 0/1 parsed tests passing."
+            },
+            {
+              "name": "static_rescan",
+              "status": "FAIL",
+              "detail": "1/4 targeted findings resolved."
+            },
+            {
+              "name": "patch_scope",
+              "status": "PASS",
+              "detail": "1 file(s) changed."
+            },
+            {
+              "name": "sandbox_isolation",
+              "status": "PASS",
+              "detail": "Executed in process-sandbox sandbox with process isolation."
+            },
+            {
+              "name": "auditability",
+              "status": "PASS",
+              "detail": "Diff, stdout, stderr, exit code, and static findings are machine-readable."
+            }
+          ],
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "E\n======================================================================\nERROR: test_users (unittest.loader._FailedTest.test_users)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_users\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 396, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 339, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_ouypax_x/tests/test_users.py\", line 4, in <module>\n    from app.users import search_users, get_db_credentials, generate_reset_token, app\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_ouypax_x/app/users.py\", line 8, in <module>\n    from flask import Flask, request, send_file, render_template_string\nModuleNotFoundError: No module named 'flask'\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "passing_tests": 0,
+          "total_tests": 1,
+          "resolved_findings": 1,
+          "total_findings": 4,
+          "coverage_delta": 0.0,
+          "duration_ms": 184,
+          "sandbox_metadata": {
+            "engine": "process-sandbox",
+            "boot_time_ms": 94,
+            "vsock_status": "N/A",
+            "vcpu_count": 1,
+            "memory_mb": 256,
+            "snapshot_used": false,
+            "isolation_level": "process",
+            "workspace_path": ""
+          }
+        }
+      },
+      {
+        "event_id": "evt_59943980dd3f44068f256194e9cee38f",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "ARCHITECT_UPDATE",
+        "timestamp": "2026-06-05T12:55:58.102884Z",
+        "agent": "architect",
+        "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+        "payload": {
+          "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+          "target_path": "app/users.py",
+          "graph_engine": "sequential-compatible-graph"
+        }
+      },
+      {
+        "event_id": "evt_42893ef00b404e56a571caffee60f271",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "SCOUT_RETRIEVAL",
+        "timestamp": "2026-06-05T12:55:58.102992Z",
+        "agent": "scout",
+        "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+        "payload": {
+          "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+          "finding": {
+            "finding_id": "finding_0d030b40e6344de9960825145c4b438f",
+            "rule_id": "python.insecure_deserialization.pickle",
+            "title": "Pickle deserialization can execute attacker-controlled code",
+            "category": "DESERIALIZATION",
+            "severity": "CRITICAL",
+            "file_path": "app/users.py",
+            "line": 46,
+            "snippet": "config = pickle.loads(data)",
+            "confidence": 0.9,
+            "cwe": "CWE-502",
+            "remediation": "Replace pickle with a safe structured format such as JSON for untrusted data."
+          },
+          "related_chunks": [
+            {
+              "chunk_id": "chunk_5b287a8909f90724",
+              "file_path": "app/users.py",
+              "start_line": 1,
+              "end_line": 71,
+              "text": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)",
+              "token_fingerprint": "a103b27a5eaf278b1ce7215e027e9e270316d7399a61cdd898b80f9a986f6ae7"
+            }
+          ],
+          "related_symbols": [
+            {
+              "symbol_id": "sym_8ffe8e1db34997f0",
+              "name": "get_db_credentials",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 13,
+              "end_line": 16
+            },
+            {
+              "symbol_id": "sym_95cbff255653e9c8",
+              "name": "initialize_database",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 19,
+              "end_line": 23
+            },
+            {
+              "symbol_id": "sym_fc79750717950c5a",
+              "name": "search_users",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 29,
+              "end_line": 33
+            },
+            {
+              "symbol_id": "sym_cca2eb049bdbb92e",
+              "name": "download_file",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 37,
+              "end_line": 39
+            },
+            {
+              "symbol_id": "sym_226501e504960c2c",
+              "name": "load_config",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 43,
+              "end_line": 47
+            },
+            {
+              "symbol_id": "sym_c8681537d25fa309",
+              "name": "parse_yaml",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 51,
+              "end_line": 55
+            },
+            {
+              "symbol_id": "sym_2ae2473059a488bd",
+              "name": "calculate",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 59,
+              "end_line": 63
+            },
+            {
+              "symbol_id": "sym_39e6367c63f29a0c",
+              "name": "generate_reset_token",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 66,
+              "end_line": 68
+            }
+          ],
+          "graph_neighbors": [],
+          "static_scan_count": 4,
+          "cve_context": null
+        }
+      },
+      {
+        "event_id": "evt_9eb48d22834e47108915f5c58d188790",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "ENGINEER_PATCH",
+        "timestamp": "2026-06-05T12:55:58.103027Z",
+        "agent": "engineer",
+        "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+        "payload": {
+          "patch_id": "patch_3148d2db27434fb69d0d9cf527b80898",
+          "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+          "iteration": 1,
+          "files": [
+            {
+              "file_path": "app/users.py",
+              "original": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+              "patched": "from __future__ import annotations\n\nimport sqlite3\nimport json\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = json.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+              "original_sha256": "df174e190582957ee523e0c2dfec3c1371598ff9064daed6c868dc1cd9d2ba2c",
+              "patched_sha256": "50c38c7f27c7ca7e046700196be8c91f76acf89480e8d26e28aa429fa738c632"
+            }
+          ],
+          "unified_diff": "--- a/app/users.py\n+++ b/app/users.py\n@@ -1,7 +1,7 @@\n from __future__ import annotations\n \n import sqlite3\n-import pickle\n+import json\n import os\n import random\n import yaml\n@@ -43,7 +43,7 @@\n def load_config():\n     data = request.get_data()\n     # Vulnerable to RCE\n-    config = pickle.loads(data)\n+    config = json.loads(data)\n     return {\"status\": \"success\", \"config\": config}\n \n # 5. YAML Deserialization\n",
+          "rationale": "Addresses CWE-502 by replacing unsafe data flow with a deterministic safer pattern. Original issue: Pickle deserialization can execute attacker-controlled code. Generated by deterministic-rule. [Defense Round] Defended against 3 adversarial vectors.",
+          "risk": "MEDIUM",
+          "engineer_confidence": 0.73
+        }
+      },
+      {
+        "event_id": "evt_46d421f6b9b14165bc2ea234fb49e114",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "SANDBOX_RESULT",
+        "timestamp": "2026-06-05T12:55:58.103057Z",
+        "agent": "router",
+        "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+        "payload": {
+          "validation_id": "validation_c11aa64256314583889d958edfd11868",
+          "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+          "patch_id": "patch_3148d2db27434fb69d0d9cf527b80898",
+          "verdict": "REJECT",
+          "axes": [
+            {
+              "name": "patch_integrity",
+              "status": "PASS",
+              "detail": "Patch applied and verified in isolated sandbox workspace."
+            },
+            {
+              "name": "pre_existing_tests",
+              "status": "FAIL",
+              "detail": "Validation commands exited 1; 0/1 parsed tests passing."
+            },
+            {
+              "name": "static_rescan",
+              "status": "FAIL",
+              "detail": "1/4 targeted findings resolved."
+            },
+            {
+              "name": "patch_scope",
+              "status": "PASS",
+              "detail": "1 file(s) changed."
+            },
+            {
+              "name": "sandbox_isolation",
+              "status": "PASS",
+              "detail": "Executed in process-sandbox sandbox with process isolation."
+            },
+            {
+              "name": "auditability",
+              "status": "PASS",
+              "detail": "Diff, stdout, stderr, exit code, and static findings are machine-readable."
+            }
+          ],
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "E\n======================================================================\nERROR: test_users (unittest.loader._FailedTest.test_users)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_users\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 396, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 339, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_rw16ij44/tests/test_users.py\", line 4, in <module>\n    from app.users import search_users, get_db_credentials, generate_reset_token, app\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_rw16ij44/app/users.py\", line 8, in <module>\n    from flask import Flask, request, send_file, render_template_string\nModuleNotFoundError: No module named 'flask'\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "passing_tests": 0,
+          "total_tests": 1,
+          "resolved_findings": 1,
+          "total_findings": 4,
+          "coverage_delta": 0.0,
+          "duration_ms": 183,
+          "sandbox_metadata": {
+            "engine": "process-sandbox",
+            "boot_time_ms": 94,
+            "vsock_status": "N/A",
+            "vcpu_count": 1,
+            "memory_mb": 256,
+            "snapshot_used": false,
+            "isolation_level": "process",
+            "workspace_path": ""
+          }
+        }
+      },
+      {
+        "event_id": "evt_c929944360524079b9b3aefd566c923b",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "ARCHITECT_UPDATE",
+        "timestamp": "2026-06-05T12:55:59.119346Z",
+        "agent": "architect",
+        "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+        "payload": {
+          "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+          "target_path": "app/users.py",
+          "graph_engine": "sequential-compatible-graph"
+        }
+      },
+      {
+        "event_id": "evt_0eb34c5740da4d4084fff72021cd3ded",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "SCOUT_RETRIEVAL",
+        "timestamp": "2026-06-05T12:55:59.119411Z",
+        "agent": "scout",
+        "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+        "payload": {
+          "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+          "finding": {
+            "finding_id": "finding_9564567e31b74401b93479a0020274ec",
+            "rule_id": "python.yaml_load",
+            "title": "YAML load uses an unsafe loader",
+            "category": "DESERIALIZATION",
+            "severity": "HIGH",
+            "file_path": "app/users.py",
+            "line": 54,
+            "snippet": "parsed = yaml.load(data, Loader=yaml.Loader)",
+            "confidence": 0.86,
+            "cwe": "CWE-20",
+            "remediation": "Use yaml.safe_load or yaml.load with SafeLoader."
+          },
+          "related_chunks": [
+            {
+              "chunk_id": "chunk_5b287a8909f90724",
+              "file_path": "app/users.py",
+              "start_line": 1,
+              "end_line": 71,
+              "text": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)",
+              "token_fingerprint": "a103b27a5eaf278b1ce7215e027e9e270316d7399a61cdd898b80f9a986f6ae7"
+            }
+          ],
+          "related_symbols": [
+            {
+              "symbol_id": "sym_8ffe8e1db34997f0",
+              "name": "get_db_credentials",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 13,
+              "end_line": 16
+            },
+            {
+              "symbol_id": "sym_95cbff255653e9c8",
+              "name": "initialize_database",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 19,
+              "end_line": 23
+            },
+            {
+              "symbol_id": "sym_fc79750717950c5a",
+              "name": "search_users",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 29,
+              "end_line": 33
+            },
+            {
+              "symbol_id": "sym_cca2eb049bdbb92e",
+              "name": "download_file",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 37,
+              "end_line": 39
+            },
+            {
+              "symbol_id": "sym_226501e504960c2c",
+              "name": "load_config",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 43,
+              "end_line": 47
+            },
+            {
+              "symbol_id": "sym_c8681537d25fa309",
+              "name": "parse_yaml",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 51,
+              "end_line": 55
+            },
+            {
+              "symbol_id": "sym_2ae2473059a488bd",
+              "name": "calculate",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 59,
+              "end_line": 63
+            },
+            {
+              "symbol_id": "sym_39e6367c63f29a0c",
+              "name": "generate_reset_token",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 66,
+              "end_line": 68
+            }
+          ],
+          "graph_neighbors": [],
+          "static_scan_count": 4,
+          "cve_context": null
+        }
+      },
+      {
+        "event_id": "evt_1beb7ce036f346cb9090d7498eaece4a",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "ENGINEER_PATCH",
+        "timestamp": "2026-06-05T12:55:59.119439Z",
+        "agent": "engineer",
+        "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+        "payload": {
+          "patch_id": "patch_240cdebdf3664dc5aaabff8aa3d35ab6",
+          "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+          "iteration": 1,
+          "files": [
+            {
+              "file_path": "app/users.py",
+              "original": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+              "patched": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.safe_load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+              "original_sha256": "df174e190582957ee523e0c2dfec3c1371598ff9064daed6c868dc1cd9d2ba2c",
+              "patched_sha256": "7c2ddbbc1b79d5c84f15972a08d33707287c2b93eb70a9cb328bfff64aa75775"
+            }
+          ],
+          "unified_diff": "--- a/app/users.py\n+++ b/app/users.py\n@@ -51,7 +51,7 @@\n def parse_yaml():\n     data = request.get_data()\n     # Vulnerable to RCE\n-    parsed = yaml.load(data, Loader=yaml.Loader)\n+    parsed = yaml.safe_load(data, Loader=yaml.Loader)\n     return {\"status\": \"success\", \"parsed\": parsed}\n \n # 6. Unsafe Exec/Eval\n",
+          "rationale": "Addresses CWE-20 by replacing unsafe data flow with a deterministic safer pattern. Original issue: YAML load uses an unsafe loader. Generated by deterministic-rule. [Defense Round] Defended against 3 adversarial vectors.",
+          "risk": "MEDIUM",
+          "engineer_confidence": 0.73
+        }
+      },
+      {
+        "event_id": "evt_c9085b5e63da45589032ea6a70820260",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "SANDBOX_RESULT",
+        "timestamp": "2026-06-05T12:55:59.119467Z",
+        "agent": "router",
+        "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+        "payload": {
+          "validation_id": "validation_12d8cc3fb8b04711a425ffcd40f6b7bb",
+          "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+          "patch_id": "patch_240cdebdf3664dc5aaabff8aa3d35ab6",
+          "verdict": "REJECT",
+          "axes": [
+            {
+              "name": "patch_integrity",
+              "status": "PASS",
+              "detail": "Patch applied and verified in isolated sandbox workspace."
+            },
+            {
+              "name": "pre_existing_tests",
+              "status": "FAIL",
+              "detail": "Validation commands exited 1; 0/1 parsed tests passing."
+            },
+            {
+              "name": "static_rescan",
+              "status": "FAIL",
+              "detail": "1/4 targeted findings resolved."
+            },
+            {
+              "name": "patch_scope",
+              "status": "PASS",
+              "detail": "1 file(s) changed."
+            },
+            {
+              "name": "sandbox_isolation",
+              "status": "PASS",
+              "detail": "Executed in process-sandbox sandbox with process isolation."
+            },
+            {
+              "name": "auditability",
+              "status": "PASS",
+              "detail": "Diff, stdout, stderr, exit code, and static findings are machine-readable."
+            }
+          ],
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "E\n======================================================================\nERROR: test_users (unittest.loader._FailedTest.test_users)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_users\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 396, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 339, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_3ul2v3qu/tests/test_users.py\", line 4, in <module>\n    from app.users import search_users, get_db_credentials, generate_reset_token, app\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_3ul2v3qu/app/users.py\", line 8, in <module>\n    from flask import Flask, request, send_file, render_template_string\nModuleNotFoundError: No module named 'flask'\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "passing_tests": 0,
+          "total_tests": 1,
+          "resolved_findings": 1,
+          "total_findings": 4,
+          "coverage_delta": 0.0,
+          "duration_ms": 179,
+          "sandbox_metadata": {
+            "engine": "process-sandbox",
+            "boot_time_ms": 90,
+            "vsock_status": "N/A",
+            "vcpu_count": 1,
+            "memory_mb": 256,
+            "snapshot_used": false,
+            "isolation_level": "process",
+            "workspace_path": ""
+          }
+        }
+      },
+      {
+        "event_id": "evt_c8f8472bbc5c4beb9b4fdf82df380498",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "ARCHITECT_UPDATE",
+        "timestamp": "2026-06-05T12:56:00.210696Z",
+        "agent": "architect",
+        "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+        "payload": {
+          "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+          "target_path": "app/users.py",
+          "graph_engine": "sequential-compatible-graph"
+        }
+      },
+      {
+        "event_id": "evt_d98bc93d048d4f35a2593bdfa489cb75",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "SCOUT_RETRIEVAL",
+        "timestamp": "2026-06-05T12:56:00.210773Z",
+        "agent": "scout",
+        "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+        "payload": {
+          "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+          "finding": {
+            "finding_id": "finding_0c016538e51c4f9fbbd8e143a390ab0a",
+            "rule_id": "python.unsafe_execution",
+            "title": "Dynamic code execution",
+            "category": "UNSAFE_EXECUTION",
+            "severity": "HIGH",
+            "file_path": "app/users.py",
+            "line": 62,
+            "snippet": "result = eval(expression)",
+            "confidence": 0.82,
+            "cwe": "CWE-94",
+            "remediation": "Replace dynamic execution with explicit parsing or a constrained evaluator."
+          },
+          "related_chunks": [
+            {
+              "chunk_id": "chunk_5b287a8909f90724",
+              "file_path": "app/users.py",
+              "start_line": 1,
+              "end_line": 71,
+              "text": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)",
+              "token_fingerprint": "a103b27a5eaf278b1ce7215e027e9e270316d7399a61cdd898b80f9a986f6ae7"
+            }
+          ],
+          "related_symbols": [
+            {
+              "symbol_id": "sym_8ffe8e1db34997f0",
+              "name": "get_db_credentials",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 13,
+              "end_line": 16
+            },
+            {
+              "symbol_id": "sym_95cbff255653e9c8",
+              "name": "initialize_database",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 19,
+              "end_line": 23
+            },
+            {
+              "symbol_id": "sym_fc79750717950c5a",
+              "name": "search_users",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 29,
+              "end_line": 33
+            },
+            {
+              "symbol_id": "sym_cca2eb049bdbb92e",
+              "name": "download_file",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 37,
+              "end_line": 39
+            },
+            {
+              "symbol_id": "sym_226501e504960c2c",
+              "name": "load_config",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 43,
+              "end_line": 47
+            },
+            {
+              "symbol_id": "sym_c8681537d25fa309",
+              "name": "parse_yaml",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 51,
+              "end_line": 55
+            },
+            {
+              "symbol_id": "sym_2ae2473059a488bd",
+              "name": "calculate",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 59,
+              "end_line": 63
+            },
+            {
+              "symbol_id": "sym_39e6367c63f29a0c",
+              "name": "generate_reset_token",
+              "kind": "function",
+              "file_path": "app/users.py",
+              "start_line": 66,
+              "end_line": 68
+            }
+          ],
+          "graph_neighbors": [],
+          "static_scan_count": 4,
+          "cve_context": null
+        }
+      },
+      {
+        "event_id": "evt_57b69477624947c8b670230b51c22b3d",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "ENGINEER_PATCH",
+        "timestamp": "2026-06-05T12:56:00.210805Z",
+        "agent": "engineer",
+        "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+        "payload": {
+          "patch_id": "patch_b0aece899d4f472294ada69bea9543f2",
+          "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+          "iteration": 1,
+          "files": [
+            {
+              "file_path": "app/users.py",
+              "original": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+              "patched": "import ast\nfrom __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = ast.literal_eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+              "original_sha256": "df174e190582957ee523e0c2dfec3c1371598ff9064daed6c868dc1cd9d2ba2c",
+              "patched_sha256": "b68893044c13f1418b27f631ca43cfa9a6dff31554d5d8385d387e52de9917d7"
+            }
+          ],
+          "unified_diff": "--- a/app/users.py\n+++ b/app/users.py\n@@ -1,3 +1,4 @@\n+import ast\n from __future__ import annotations\n \n import sqlite3\n@@ -59,7 +60,7 @@\n def calculate():\n     expression = request.args.get(\"expr\", \"1+1\")\n     # Vulnerable to RCE\n-    result = eval(expression)\n+    result = ast.literal_eval(expression)\n     return {\"result\": result}\n \n # 7. Weak Random\n",
+          "rationale": "Addresses CWE-94 by replacing unsafe data flow with a deterministic safer pattern. Original issue: Dynamic code execution. Generated by deterministic-rule. [Defense Round] Defended against 3 adversarial vectors.",
+          "risk": "MEDIUM",
+          "engineer_confidence": 0.73
+        }
+      },
+      {
+        "event_id": "evt_39d6cf9a7ccf4e88b53cd97ac044641a",
+        "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+        "event_type": "SANDBOX_RESULT",
+        "timestamp": "2026-06-05T12:56:00.210838Z",
+        "agent": "router",
+        "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+        "payload": {
+          "validation_id": "validation_03c91153171748a9a9a64cd938fb2547",
+          "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+          "patch_id": "patch_b0aece899d4f472294ada69bea9543f2",
+          "verdict": "REJECT",
+          "axes": [
+            {
+              "name": "patch_integrity",
+              "status": "PASS",
+              "detail": "Patch applied and verified in isolated sandbox workspace."
+            },
+            {
+              "name": "pre_existing_tests",
+              "status": "FAIL",
+              "detail": "Validation commands exited 1; 0/1 parsed tests passing."
+            },
+            {
+              "name": "static_rescan",
+              "status": "FAIL",
+              "detail": "1/4 targeted findings resolved."
+            },
+            {
+              "name": "patch_scope",
+              "status": "PASS",
+              "detail": "1 file(s) changed."
+            },
+            {
+              "name": "sandbox_isolation",
+              "status": "PASS",
+              "detail": "Executed in process-sandbox sandbox with process isolation."
+            },
+            {
+              "name": "auditability",
+              "status": "PASS",
+              "detail": "Diff, stdout, stderr, exit code, and static findings are machine-readable."
+            }
+          ],
+          "exit_code": 1,
+          "stdout": "",
+          "stderr": "E\n======================================================================\nERROR: test_users (unittest.loader._FailedTest.test_users)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_users\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 396, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 339, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_l0x0w6ex/tests/test_users.py\", line 4, in <module>\n    from app.users import search_users, get_db_credentials, generate_reset_token, app\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_l0x0w6ex/app/users.py\", line 2\n    from __future__ import annotations\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nSyntaxError: from __future__ imports must occur at the beginning of the file\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+          "passing_tests": 0,
+          "total_tests": 1,
+          "resolved_findings": 1,
+          "total_findings": 4,
+          "coverage_delta": 0.0,
+          "duration_ms": 146,
+          "sandbox_metadata": {
+            "engine": "process-sandbox",
+            "boot_time_ms": 72,
+            "vsock_status": "N/A",
+            "vcpu_count": 1,
+            "memory_mb": 256,
+            "snapshot_used": false,
+            "isolation_level": "process",
+            "workspace_path": ""
+          }
         }
       }
     ],
-    "diagnosis": {
-      "escalation_id": "esc_31269f27fa6541d5aa82a3f4478f7057",
-      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
-      "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
-      "iteration_count": 1,
-      "logical_delta_history": [],
-      "deadlock_type": "CONVERGED_BELOW_THRESHOLD",
-      "last_failing_test": null,
-      "last_stack_trace": null,
-      "last_critic_directive": "Patch generation failed: No deterministic or configured LLM patch available for python.sql_injection.fstring",
-      "last_engineer_diff": "",
-      "suggested_hint": "Check LLM provider configuration or add a deterministic remediation rule.",
-      "tokens_consumed": 0,
-      "tokens_remaining": 2000000
-    },
+    "diagnosis": null,
     "rollback": null,
+    "operator_hint": null,
+    "approved_patch_ids": [],
+    "validated_patch_ids": [],
     "approved_patch_id": null
   },
   "events": [
     {
-      "event_id": "evt_4e1c0fbd3a44401482808acf5bbba6fa",
-      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+      "event_id": "evt_4b1d9a959f2c4e90a6839ee1b4fc93e3",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
       "event_type": "ARCHITECT_UPDATE",
-      "timestamp": "2026-05-27T16:51:55.501566Z",
+      "timestamp": "2026-06-05T12:55:55.509113Z",
       "agent": "architect",
       "task_id": null,
       "payload": {
         "status": "repository_ingested",
-        "files_indexed": 4,
-        "symbols": 14,
+        "files_indexed": 3,
+        "symbols": 8,
         "graph_edges": 0,
         "findings": 4,
         "validation_commands": [
@@ -645,89 +1633,43 @@
       }
     },
     {
-      "event_id": "evt_3c5da763291e48638e49d674bfb6101d",
-      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+      "event_id": "evt_ed2f1eb24ce54b78ad75d5c3ec81091c",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
       "event_type": "BUDGET_UPDATE",
-      "timestamp": "2026-05-27T16:51:55.501783Z",
+      "timestamp": "2026-06-05T12:55:55.509317Z",
       "agent": "router",
       "task_id": null,
       "payload": {
-        "tokens_consumed": 826,
-        "tokens_remaining": 1999174,
+        "tokens_consumed": 554,
+        "tokens_remaining": 1999446,
         "token_budget": 2000000,
-        "estimated_cost_usd": 0.0012
+        "estimated_cost_usd": 0.0008
       }
     },
     {
-      "event_id": "evt_be5e4d1ad1204d2ca69ac87ef56bb7dc",
-      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
-      "event_type": "AUDIT_LOG",
-      "timestamp": "2026-05-27T16:51:55.502431Z",
-      "agent": "router",
-      "task_id": null,
-      "payload": {
-        "message": "Graph state machine executed",
-        "engine": "sequential-compatible-graph",
-        "trace": [
-          {
-            "agent": "architect",
-            "action": "planned_tasks",
-            "payload": {
-              "task_count": 4
-            }
-          },
-          {
-            "agent": "scout",
-            "action": "retrieved_evidence",
-            "payload": {
-              "finding": "python.sql_injection.fstring",
-              "chunks": 2
-            }
-          },
-          {
-            "agent": "engineer",
-            "action": "patch_generation_failed",
-            "payload": {
-              "error": "PatchGenerationError",
-              "message": "No deterministic or configured LLM patch available for python.sql_injection.fstring"
-            }
-          },
-          {
-            "agent": "router",
-            "action": "terminal_completion",
-            "payload": {
-              "engine": "sequential-compatible-graph"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "event_id": "evt_13a92f790ada40d881bd5c987532e7c2",
-      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+      "event_id": "evt_3cb9fab106e64ce99a0fa933dc62e72c",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
       "event_type": "ARCHITECT_UPDATE",
-      "timestamp": "2026-05-27T16:51:55.502453Z",
+      "timestamp": "2026-06-05T12:55:56.775331Z",
       "agent": "architect",
-      "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+      "task_id": "task_626f123aaa2745d0b834517b4c792718",
       "payload": {
-        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+        "task_id": "task_626f123aaa2745d0b834517b4c792718",
         "target_path": "app/users.py",
-        "status": "ACTIVE",
-        "priority": "HIGH",
         "graph_engine": "sequential-compatible-graph"
       }
     },
     {
-      "event_id": "evt_703f22557fc6499d81c11d7b8ae2386f",
-      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
+      "event_id": "evt_0b957dd3550c461db1be5a4bea2427f7",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
       "event_type": "SCOUT_RETRIEVAL",
-      "timestamp": "2026-05-27T16:51:55.502523Z",
+      "timestamp": "2026-06-05T12:55:56.775441Z",
       "agent": "scout",
-      "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+      "task_id": "task_626f123aaa2745d0b834517b4c792718",
       "payload": {
-        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+        "task_id": "task_626f123aaa2745d0b834517b4c792718",
         "finding": {
-          "finding_id": "finding_feaf4cbccac6474c9544c3fecd67ff36",
+          "finding_id": "finding_6f09c6799870431c884250032eb0ba38",
           "rule_id": "python.sql_injection.fstring",
           "title": "SQL query uses f-string interpolation",
           "category": "INJECTION",
@@ -747,14 +1689,6 @@
             "end_line": 71,
             "text": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)",
             "token_fingerprint": "a103b27a5eaf278b1ce7215e027e9e270316d7399a61cdd898b80f9a986f6ae7"
-          },
-          {
-            "chunk_id": "chunk_4e5ad92b6633f231",
-            "file_path": "tests/test_users.py",
-            "start_line": 1,
-            "end_line": 31,
-            "text": "from __future__ import annotations\n\nimport unittest\nfrom app.users import search_users, get_db_credentials, generate_reset_token, app\n\nclass VulnerableAppTests(unittest.TestCase):\n    def setUp(self):\n        self.client = app.test_client()\n\n    def test_search_by_name(self) -> None:\n        response = self.client.get(\"/search?name=Ada\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"results\"], [[1, \"Ada\"]])\n\n    def test_search_without_match(self) -> None:\n        response = self.client.get(\"/search?name=Katherine\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"results\"], [])\n        \n    def test_credentials(self) -> None:\n        aws, pwd = get_db_credentials()\n        self.assertTrue(len(aws) > 0)\n        self.assertTrue(len(pwd) > 0)\n        \n    def test_math(self) -> None:\n        response = self.client.get(\"/math?expr=5*5\")\n        self.assertEqual(response.status_code, 200)\n        self.assertEqual(response.json[\"result\"], 25)\n\nif __name__ == \"__main__\":\n    unittest.main()",
-            "token_fingerprint": "6c22a2c5016dcd12135be0d6f4b25096c3b330c1318d0ef7363bc92f87d64d89"
           }
         ],
         "related_symbols": [
@@ -824,30 +1758,768 @@
           }
         ],
         "graph_neighbors": [],
-        "static_scan_count": 4
+        "static_scan_count": 4,
+        "cve_context": null
       }
     },
     {
-      "event_id": "evt_7a347598742742eabe8f629ec1de0bd9",
-      "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
-      "event_type": "ESCALATION",
-      "timestamp": "2026-05-27T16:51:55.502559Z",
-      "agent": "router",
-      "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
+      "event_id": "evt_a92844288552436fa1091457a20a3f89",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "ENGINEER_PATCH",
+      "timestamp": "2026-06-05T12:55:56.775476Z",
+      "agent": "engineer",
+      "task_id": "task_626f123aaa2745d0b834517b4c792718",
       "payload": {
-        "escalation_id": "esc_31269f27fa6541d5aa82a3f4478f7057",
-        "session_id": "sess_582203f6bc784d35b4939305519ad9d7",
-        "task_id": "task_40c2dadc442c43df967f73aedcd090e9",
-        "iteration_count": 1,
-        "logical_delta_history": [],
-        "deadlock_type": "CONVERGED_BELOW_THRESHOLD",
-        "last_failing_test": null,
-        "last_stack_trace": null,
-        "last_critic_directive": "Patch generation failed: No deterministic or configured LLM patch available for python.sql_injection.fstring",
-        "last_engineer_diff": "",
-        "suggested_hint": "Check LLM provider configuration or add a deterministic remediation rule.",
-        "tokens_consumed": 0,
-        "tokens_remaining": 2000000
+        "patch_id": "patch_6204969ebbdd4e028741b5424ac9fb20",
+        "task_id": "task_626f123aaa2745d0b834517b4c792718",
+        "iteration": 1,
+        "files": [
+          {
+            "file_path": "app/users.py",
+            "original": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "patched": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    rows = db_conn.execute('SELECT id, name FROM users WHERE name LIKE ?', (f\"%{name}%\",)).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "original_sha256": "df174e190582957ee523e0c2dfec3c1371598ff9064daed6c868dc1cd9d2ba2c",
+            "patched_sha256": "f3bf7c9626742246bbc955a25f8b50a2cf95a4703e5419ba741aca17167ceb92"
+          }
+        ],
+        "unified_diff": "--- a/app/users.py\n+++ b/app/users.py\n@@ -28,8 +28,7 @@\n @app.route(\"/search\")\n def search_users():\n     name = request.args.get(\"name\", \"\")\n-    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n-    rows = db_conn.execute(query).fetchall()\n+    rows = db_conn.execute('SELECT id, name FROM users WHERE name LIKE ?', (f\"%{name}%\",)).fetchall()\n     return {\"results\": rows}\n \n # 3. Path Traversal\n",
+        "rationale": "Addresses CWE-89 by replacing unsafe data flow with a deterministic safer pattern. Original issue: SQL query uses f-string interpolation. Generated by deterministic-rule. [Defense Round] Defended against 3 adversarial vectors.",
+        "risk": "MEDIUM",
+        "engineer_confidence": 0.75
+      }
+    },
+    {
+      "event_id": "evt_0ce9b83766a64300818c818d0fb2d101",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "SANDBOX_RESULT",
+      "timestamp": "2026-06-05T12:55:56.775508Z",
+      "agent": "router",
+      "task_id": "task_626f123aaa2745d0b834517b4c792718",
+      "payload": {
+        "validation_id": "validation_35dc442bd5a84409816eb6c8d05fb54e",
+        "task_id": "task_626f123aaa2745d0b834517b4c792718",
+        "patch_id": "patch_6204969ebbdd4e028741b5424ac9fb20",
+        "verdict": "REJECT",
+        "axes": [
+          {
+            "name": "patch_integrity",
+            "status": "PASS",
+            "detail": "Patch applied and verified in isolated sandbox workspace."
+          },
+          {
+            "name": "pre_existing_tests",
+            "status": "FAIL",
+            "detail": "Validation commands exited 1; 0/1 parsed tests passing."
+          },
+          {
+            "name": "static_rescan",
+            "status": "FAIL",
+            "detail": "1/4 targeted findings resolved."
+          },
+          {
+            "name": "patch_scope",
+            "status": "PASS",
+            "detail": "1 file(s) changed."
+          },
+          {
+            "name": "sandbox_isolation",
+            "status": "PASS",
+            "detail": "Executed in process-sandbox sandbox with process isolation."
+          },
+          {
+            "name": "auditability",
+            "status": "PASS",
+            "detail": "Diff, stdout, stderr, exit code, and static findings are machine-readable."
+          }
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "E\n======================================================================\nERROR: test_users (unittest.loader._FailedTest.test_users)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_users\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 396, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 339, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_ouypax_x/tests/test_users.py\", line 4, in <module>\n    from app.users import search_users, get_db_credentials, generate_reset_token, app\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_ouypax_x/app/users.py\", line 8, in <module>\n    from flask import Flask, request, send_file, render_template_string\nModuleNotFoundError: No module named 'flask'\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+        "passing_tests": 0,
+        "total_tests": 1,
+        "resolved_findings": 1,
+        "total_findings": 4,
+        "coverage_delta": 0.0,
+        "duration_ms": 184,
+        "sandbox_metadata": {
+          "engine": "process-sandbox",
+          "boot_time_ms": 94,
+          "vsock_status": "N/A",
+          "vcpu_count": 1,
+          "memory_mb": 256,
+          "snapshot_used": false,
+          "isolation_level": "process",
+          "workspace_path": ""
+        }
+      }
+    },
+    {
+      "event_id": "evt_59943980dd3f44068f256194e9cee38f",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "ARCHITECT_UPDATE",
+      "timestamp": "2026-06-05T12:55:58.102884Z",
+      "agent": "architect",
+      "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+      "payload": {
+        "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+        "target_path": "app/users.py",
+        "graph_engine": "sequential-compatible-graph"
+      }
+    },
+    {
+      "event_id": "evt_42893ef00b404e56a571caffee60f271",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "SCOUT_RETRIEVAL",
+      "timestamp": "2026-06-05T12:55:58.102992Z",
+      "agent": "scout",
+      "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+      "payload": {
+        "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+        "finding": {
+          "finding_id": "finding_0d030b40e6344de9960825145c4b438f",
+          "rule_id": "python.insecure_deserialization.pickle",
+          "title": "Pickle deserialization can execute attacker-controlled code",
+          "category": "DESERIALIZATION",
+          "severity": "CRITICAL",
+          "file_path": "app/users.py",
+          "line": 46,
+          "snippet": "config = pickle.loads(data)",
+          "confidence": 0.9,
+          "cwe": "CWE-502",
+          "remediation": "Replace pickle with a safe structured format such as JSON for untrusted data."
+        },
+        "related_chunks": [
+          {
+            "chunk_id": "chunk_5b287a8909f90724",
+            "file_path": "app/users.py",
+            "start_line": 1,
+            "end_line": 71,
+            "text": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)",
+            "token_fingerprint": "a103b27a5eaf278b1ce7215e027e9e270316d7399a61cdd898b80f9a986f6ae7"
+          }
+        ],
+        "related_symbols": [
+          {
+            "symbol_id": "sym_8ffe8e1db34997f0",
+            "name": "get_db_credentials",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 13,
+            "end_line": 16
+          },
+          {
+            "symbol_id": "sym_95cbff255653e9c8",
+            "name": "initialize_database",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 19,
+            "end_line": 23
+          },
+          {
+            "symbol_id": "sym_fc79750717950c5a",
+            "name": "search_users",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 29,
+            "end_line": 33
+          },
+          {
+            "symbol_id": "sym_cca2eb049bdbb92e",
+            "name": "download_file",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 37,
+            "end_line": 39
+          },
+          {
+            "symbol_id": "sym_226501e504960c2c",
+            "name": "load_config",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 43,
+            "end_line": 47
+          },
+          {
+            "symbol_id": "sym_c8681537d25fa309",
+            "name": "parse_yaml",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 51,
+            "end_line": 55
+          },
+          {
+            "symbol_id": "sym_2ae2473059a488bd",
+            "name": "calculate",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 59,
+            "end_line": 63
+          },
+          {
+            "symbol_id": "sym_39e6367c63f29a0c",
+            "name": "generate_reset_token",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 66,
+            "end_line": 68
+          }
+        ],
+        "graph_neighbors": [],
+        "static_scan_count": 4,
+        "cve_context": null
+      }
+    },
+    {
+      "event_id": "evt_9eb48d22834e47108915f5c58d188790",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "ENGINEER_PATCH",
+      "timestamp": "2026-06-05T12:55:58.103027Z",
+      "agent": "engineer",
+      "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+      "payload": {
+        "patch_id": "patch_3148d2db27434fb69d0d9cf527b80898",
+        "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+        "iteration": 1,
+        "files": [
+          {
+            "file_path": "app/users.py",
+            "original": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "patched": "from __future__ import annotations\n\nimport sqlite3\nimport json\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = json.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "original_sha256": "df174e190582957ee523e0c2dfec3c1371598ff9064daed6c868dc1cd9d2ba2c",
+            "patched_sha256": "50c38c7f27c7ca7e046700196be8c91f76acf89480e8d26e28aa429fa738c632"
+          }
+        ],
+        "unified_diff": "--- a/app/users.py\n+++ b/app/users.py\n@@ -1,7 +1,7 @@\n from __future__ import annotations\n \n import sqlite3\n-import pickle\n+import json\n import os\n import random\n import yaml\n@@ -43,7 +43,7 @@\n def load_config():\n     data = request.get_data()\n     # Vulnerable to RCE\n-    config = pickle.loads(data)\n+    config = json.loads(data)\n     return {\"status\": \"success\", \"config\": config}\n \n # 5. YAML Deserialization\n",
+        "rationale": "Addresses CWE-502 by replacing unsafe data flow with a deterministic safer pattern. Original issue: Pickle deserialization can execute attacker-controlled code. Generated by deterministic-rule. [Defense Round] Defended against 3 adversarial vectors.",
+        "risk": "MEDIUM",
+        "engineer_confidence": 0.73
+      }
+    },
+    {
+      "event_id": "evt_46d421f6b9b14165bc2ea234fb49e114",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "SANDBOX_RESULT",
+      "timestamp": "2026-06-05T12:55:58.103057Z",
+      "agent": "router",
+      "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+      "payload": {
+        "validation_id": "validation_c11aa64256314583889d958edfd11868",
+        "task_id": "task_094a3eca1c7042059a317cf7aa37a7eb",
+        "patch_id": "patch_3148d2db27434fb69d0d9cf527b80898",
+        "verdict": "REJECT",
+        "axes": [
+          {
+            "name": "patch_integrity",
+            "status": "PASS",
+            "detail": "Patch applied and verified in isolated sandbox workspace."
+          },
+          {
+            "name": "pre_existing_tests",
+            "status": "FAIL",
+            "detail": "Validation commands exited 1; 0/1 parsed tests passing."
+          },
+          {
+            "name": "static_rescan",
+            "status": "FAIL",
+            "detail": "1/4 targeted findings resolved."
+          },
+          {
+            "name": "patch_scope",
+            "status": "PASS",
+            "detail": "1 file(s) changed."
+          },
+          {
+            "name": "sandbox_isolation",
+            "status": "PASS",
+            "detail": "Executed in process-sandbox sandbox with process isolation."
+          },
+          {
+            "name": "auditability",
+            "status": "PASS",
+            "detail": "Diff, stdout, stderr, exit code, and static findings are machine-readable."
+          }
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "E\n======================================================================\nERROR: test_users (unittest.loader._FailedTest.test_users)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_users\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 396, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 339, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_rw16ij44/tests/test_users.py\", line 4, in <module>\n    from app.users import search_users, get_db_credentials, generate_reset_token, app\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_rw16ij44/app/users.py\", line 8, in <module>\n    from flask import Flask, request, send_file, render_template_string\nModuleNotFoundError: No module named 'flask'\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+        "passing_tests": 0,
+        "total_tests": 1,
+        "resolved_findings": 1,
+        "total_findings": 4,
+        "coverage_delta": 0.0,
+        "duration_ms": 183,
+        "sandbox_metadata": {
+          "engine": "process-sandbox",
+          "boot_time_ms": 94,
+          "vsock_status": "N/A",
+          "vcpu_count": 1,
+          "memory_mb": 256,
+          "snapshot_used": false,
+          "isolation_level": "process",
+          "workspace_path": ""
+        }
+      }
+    },
+    {
+      "event_id": "evt_c929944360524079b9b3aefd566c923b",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "ARCHITECT_UPDATE",
+      "timestamp": "2026-06-05T12:55:59.119346Z",
+      "agent": "architect",
+      "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+      "payload": {
+        "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+        "target_path": "app/users.py",
+        "graph_engine": "sequential-compatible-graph"
+      }
+    },
+    {
+      "event_id": "evt_0eb34c5740da4d4084fff72021cd3ded",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "SCOUT_RETRIEVAL",
+      "timestamp": "2026-06-05T12:55:59.119411Z",
+      "agent": "scout",
+      "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+      "payload": {
+        "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+        "finding": {
+          "finding_id": "finding_9564567e31b74401b93479a0020274ec",
+          "rule_id": "python.yaml_load",
+          "title": "YAML load uses an unsafe loader",
+          "category": "DESERIALIZATION",
+          "severity": "HIGH",
+          "file_path": "app/users.py",
+          "line": 54,
+          "snippet": "parsed = yaml.load(data, Loader=yaml.Loader)",
+          "confidence": 0.86,
+          "cwe": "CWE-20",
+          "remediation": "Use yaml.safe_load or yaml.load with SafeLoader."
+        },
+        "related_chunks": [
+          {
+            "chunk_id": "chunk_5b287a8909f90724",
+            "file_path": "app/users.py",
+            "start_line": 1,
+            "end_line": 71,
+            "text": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)",
+            "token_fingerprint": "a103b27a5eaf278b1ce7215e027e9e270316d7399a61cdd898b80f9a986f6ae7"
+          }
+        ],
+        "related_symbols": [
+          {
+            "symbol_id": "sym_8ffe8e1db34997f0",
+            "name": "get_db_credentials",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 13,
+            "end_line": 16
+          },
+          {
+            "symbol_id": "sym_95cbff255653e9c8",
+            "name": "initialize_database",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 19,
+            "end_line": 23
+          },
+          {
+            "symbol_id": "sym_fc79750717950c5a",
+            "name": "search_users",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 29,
+            "end_line": 33
+          },
+          {
+            "symbol_id": "sym_cca2eb049bdbb92e",
+            "name": "download_file",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 37,
+            "end_line": 39
+          },
+          {
+            "symbol_id": "sym_226501e504960c2c",
+            "name": "load_config",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 43,
+            "end_line": 47
+          },
+          {
+            "symbol_id": "sym_c8681537d25fa309",
+            "name": "parse_yaml",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 51,
+            "end_line": 55
+          },
+          {
+            "symbol_id": "sym_2ae2473059a488bd",
+            "name": "calculate",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 59,
+            "end_line": 63
+          },
+          {
+            "symbol_id": "sym_39e6367c63f29a0c",
+            "name": "generate_reset_token",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 66,
+            "end_line": 68
+          }
+        ],
+        "graph_neighbors": [],
+        "static_scan_count": 4,
+        "cve_context": null
+      }
+    },
+    {
+      "event_id": "evt_1beb7ce036f346cb9090d7498eaece4a",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "ENGINEER_PATCH",
+      "timestamp": "2026-06-05T12:55:59.119439Z",
+      "agent": "engineer",
+      "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+      "payload": {
+        "patch_id": "patch_240cdebdf3664dc5aaabff8aa3d35ab6",
+        "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+        "iteration": 1,
+        "files": [
+          {
+            "file_path": "app/users.py",
+            "original": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "patched": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.safe_load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "original_sha256": "df174e190582957ee523e0c2dfec3c1371598ff9064daed6c868dc1cd9d2ba2c",
+            "patched_sha256": "7c2ddbbc1b79d5c84f15972a08d33707287c2b93eb70a9cb328bfff64aa75775"
+          }
+        ],
+        "unified_diff": "--- a/app/users.py\n+++ b/app/users.py\n@@ -51,7 +51,7 @@\n def parse_yaml():\n     data = request.get_data()\n     # Vulnerable to RCE\n-    parsed = yaml.load(data, Loader=yaml.Loader)\n+    parsed = yaml.safe_load(data, Loader=yaml.Loader)\n     return {\"status\": \"success\", \"parsed\": parsed}\n \n # 6. Unsafe Exec/Eval\n",
+        "rationale": "Addresses CWE-20 by replacing unsafe data flow with a deterministic safer pattern. Original issue: YAML load uses an unsafe loader. Generated by deterministic-rule. [Defense Round] Defended against 3 adversarial vectors.",
+        "risk": "MEDIUM",
+        "engineer_confidence": 0.73
+      }
+    },
+    {
+      "event_id": "evt_c9085b5e63da45589032ea6a70820260",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "SANDBOX_RESULT",
+      "timestamp": "2026-06-05T12:55:59.119467Z",
+      "agent": "router",
+      "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+      "payload": {
+        "validation_id": "validation_12d8cc3fb8b04711a425ffcd40f6b7bb",
+        "task_id": "task_c49e657b846746c3af6280e3b5328f02",
+        "patch_id": "patch_240cdebdf3664dc5aaabff8aa3d35ab6",
+        "verdict": "REJECT",
+        "axes": [
+          {
+            "name": "patch_integrity",
+            "status": "PASS",
+            "detail": "Patch applied and verified in isolated sandbox workspace."
+          },
+          {
+            "name": "pre_existing_tests",
+            "status": "FAIL",
+            "detail": "Validation commands exited 1; 0/1 parsed tests passing."
+          },
+          {
+            "name": "static_rescan",
+            "status": "FAIL",
+            "detail": "1/4 targeted findings resolved."
+          },
+          {
+            "name": "patch_scope",
+            "status": "PASS",
+            "detail": "1 file(s) changed."
+          },
+          {
+            "name": "sandbox_isolation",
+            "status": "PASS",
+            "detail": "Executed in process-sandbox sandbox with process isolation."
+          },
+          {
+            "name": "auditability",
+            "status": "PASS",
+            "detail": "Diff, stdout, stderr, exit code, and static findings are machine-readable."
+          }
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "E\n======================================================================\nERROR: test_users (unittest.loader._FailedTest.test_users)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_users\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 396, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 339, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_3ul2v3qu/tests/test_users.py\", line 4, in <module>\n    from app.users import search_users, get_db_credentials, generate_reset_token, app\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_3ul2v3qu/app/users.py\", line 8, in <module>\n    from flask import Flask, request, send_file, render_template_string\nModuleNotFoundError: No module named 'flask'\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+        "passing_tests": 0,
+        "total_tests": 1,
+        "resolved_findings": 1,
+        "total_findings": 4,
+        "coverage_delta": 0.0,
+        "duration_ms": 179,
+        "sandbox_metadata": {
+          "engine": "process-sandbox",
+          "boot_time_ms": 90,
+          "vsock_status": "N/A",
+          "vcpu_count": 1,
+          "memory_mb": 256,
+          "snapshot_used": false,
+          "isolation_level": "process",
+          "workspace_path": ""
+        }
+      }
+    },
+    {
+      "event_id": "evt_c8f8472bbc5c4beb9b4fdf82df380498",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "ARCHITECT_UPDATE",
+      "timestamp": "2026-06-05T12:56:00.210696Z",
+      "agent": "architect",
+      "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+      "payload": {
+        "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+        "target_path": "app/users.py",
+        "graph_engine": "sequential-compatible-graph"
+      }
+    },
+    {
+      "event_id": "evt_d98bc93d048d4f35a2593bdfa489cb75",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "SCOUT_RETRIEVAL",
+      "timestamp": "2026-06-05T12:56:00.210773Z",
+      "agent": "scout",
+      "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+      "payload": {
+        "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+        "finding": {
+          "finding_id": "finding_0c016538e51c4f9fbbd8e143a390ab0a",
+          "rule_id": "python.unsafe_execution",
+          "title": "Dynamic code execution",
+          "category": "UNSAFE_EXECUTION",
+          "severity": "HIGH",
+          "file_path": "app/users.py",
+          "line": 62,
+          "snippet": "result = eval(expression)",
+          "confidence": 0.82,
+          "cwe": "CWE-94",
+          "remediation": "Replace dynamic execution with explicit parsing or a constrained evaluator."
+        },
+        "related_chunks": [
+          {
+            "chunk_id": "chunk_5b287a8909f90724",
+            "file_path": "app/users.py",
+            "start_line": 1,
+            "end_line": 71,
+            "text": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)",
+            "token_fingerprint": "a103b27a5eaf278b1ce7215e027e9e270316d7399a61cdd898b80f9a986f6ae7"
+          }
+        ],
+        "related_symbols": [
+          {
+            "symbol_id": "sym_8ffe8e1db34997f0",
+            "name": "get_db_credentials",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 13,
+            "end_line": 16
+          },
+          {
+            "symbol_id": "sym_95cbff255653e9c8",
+            "name": "initialize_database",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 19,
+            "end_line": 23
+          },
+          {
+            "symbol_id": "sym_fc79750717950c5a",
+            "name": "search_users",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 29,
+            "end_line": 33
+          },
+          {
+            "symbol_id": "sym_cca2eb049bdbb92e",
+            "name": "download_file",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 37,
+            "end_line": 39
+          },
+          {
+            "symbol_id": "sym_226501e504960c2c",
+            "name": "load_config",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 43,
+            "end_line": 47
+          },
+          {
+            "symbol_id": "sym_c8681537d25fa309",
+            "name": "parse_yaml",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 51,
+            "end_line": 55
+          },
+          {
+            "symbol_id": "sym_2ae2473059a488bd",
+            "name": "calculate",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 59,
+            "end_line": 63
+          },
+          {
+            "symbol_id": "sym_39e6367c63f29a0c",
+            "name": "generate_reset_token",
+            "kind": "function",
+            "file_path": "app/users.py",
+            "start_line": 66,
+            "end_line": 68
+          }
+        ],
+        "graph_neighbors": [],
+        "static_scan_count": 4,
+        "cve_context": null
+      }
+    },
+    {
+      "event_id": "evt_57b69477624947c8b670230b51c22b3d",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "ENGINEER_PATCH",
+      "timestamp": "2026-06-05T12:56:00.210805Z",
+      "agent": "engineer",
+      "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+      "payload": {
+        "patch_id": "patch_b0aece899d4f472294ada69bea9543f2",
+        "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+        "iteration": 1,
+        "files": [
+          {
+            "file_path": "app/users.py",
+            "original": "from __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "patched": "import ast\nfrom __future__ import annotations\n\nimport sqlite3\nimport pickle\nimport os\nimport random\nimport yaml\nfrom flask import Flask, request, send_file, render_template_string\n\napp = Flask(__name__)\n\n# 1. Hardcoded Secrets\ndef get_db_credentials():\n    aws_secret_key = \"AKIAIOSFODNN7EXAMPLE\"\n    password = \"super_secret_db_password_123!\"\n    return aws_secret_key, password\n\n# Database initialization\ndef initialize_database() -> sqlite3.Connection:\n    connection = sqlite3.connect(\":memory:\", check_same_thread=False)\n    connection.execute(\"CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)\")\n    connection.executemany(\"INSERT INTO users(name) VALUES (?)\", [(\"Ada\",), (\"Grace\",), (\"Alan\",)])\n    return connection\n\ndb_conn = initialize_database()\n\n# 2. SQL Injection (F-string)\n@app.route(\"/search\")\ndef search_users():\n    name = request.args.get(\"name\", \"\")\n    query = f\"SELECT id, name FROM users WHERE name LIKE '%{name}%'\"\n    rows = db_conn.execute(query).fetchall()\n    return {\"results\": rows}\n\n# 3. Path Traversal\n@app.route(\"/download\")\ndef download_file():\n    filename = request.args.get(\"file\", \"default.txt\")\n    return send_file(f\"/var/www/uploads/{filename}\")\n\n# 4. Pickle Deserialization\n@app.route(\"/config/load\", methods=[\"POST\"])\ndef load_config():\n    data = request.get_data()\n    # Vulnerable to RCE\n    config = pickle.loads(data)\n    return {\"status\": \"success\", \"config\": config}\n\n# 5. YAML Deserialization\n@app.route(\"/yaml/load\", methods=[\"POST\"])\ndef parse_yaml():\n    data = request.get_data()\n    # Vulnerable to RCE\n    parsed = yaml.load(data, Loader=yaml.Loader)\n    return {\"status\": \"success\", \"parsed\": parsed}\n\n# 6. Unsafe Exec/Eval\n@app.route(\"/math\")\ndef calculate():\n    expression = request.args.get(\"expr\", \"1+1\")\n    # Vulnerable to RCE\n    result = ast.literal_eval(expression)\n    return {\"result\": result}\n\n# 7. Weak Random\ndef generate_reset_token():\n    # Predictable token\n    return random.randint(100000, 999999)\n\nif __name__ == \"__main__\":\n    app.run(port=8080)\n",
+            "original_sha256": "df174e190582957ee523e0c2dfec3c1371598ff9064daed6c868dc1cd9d2ba2c",
+            "patched_sha256": "b68893044c13f1418b27f631ca43cfa9a6dff31554d5d8385d387e52de9917d7"
+          }
+        ],
+        "unified_diff": "--- a/app/users.py\n+++ b/app/users.py\n@@ -1,3 +1,4 @@\n+import ast\n from __future__ import annotations\n \n import sqlite3\n@@ -59,7 +60,7 @@\n def calculate():\n     expression = request.args.get(\"expr\", \"1+1\")\n     # Vulnerable to RCE\n-    result = eval(expression)\n+    result = ast.literal_eval(expression)\n     return {\"result\": result}\n \n # 7. Weak Random\n",
+        "rationale": "Addresses CWE-94 by replacing unsafe data flow with a deterministic safer pattern. Original issue: Dynamic code execution. Generated by deterministic-rule. [Defense Round] Defended against 3 adversarial vectors.",
+        "risk": "MEDIUM",
+        "engineer_confidence": 0.73
+      }
+    },
+    {
+      "event_id": "evt_39d6cf9a7ccf4e88b53cd97ac044641a",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "SANDBOX_RESULT",
+      "timestamp": "2026-06-05T12:56:00.210838Z",
+      "agent": "router",
+      "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+      "payload": {
+        "validation_id": "validation_03c91153171748a9a9a64cd938fb2547",
+        "task_id": "task_b8a53b4dac5447b7839d024059576cd5",
+        "patch_id": "patch_b0aece899d4f472294ada69bea9543f2",
+        "verdict": "REJECT",
+        "axes": [
+          {
+            "name": "patch_integrity",
+            "status": "PASS",
+            "detail": "Patch applied and verified in isolated sandbox workspace."
+          },
+          {
+            "name": "pre_existing_tests",
+            "status": "FAIL",
+            "detail": "Validation commands exited 1; 0/1 parsed tests passing."
+          },
+          {
+            "name": "static_rescan",
+            "status": "FAIL",
+            "detail": "1/4 targeted findings resolved."
+          },
+          {
+            "name": "patch_scope",
+            "status": "PASS",
+            "detail": "1 file(s) changed."
+          },
+          {
+            "name": "sandbox_isolation",
+            "status": "PASS",
+            "detail": "Executed in process-sandbox sandbox with process isolation."
+          },
+          {
+            "name": "auditability",
+            "status": "PASS",
+            "detail": "Diff, stdout, stderr, exit code, and static findings are machine-readable."
+          }
+        ],
+        "exit_code": 1,
+        "stdout": "",
+        "stderr": "E\n======================================================================\nERROR: test_users (unittest.loader._FailedTest.test_users)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_users\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 396, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/loader.py\", line 339, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_l0x0w6ex/tests/test_users.py\", line 4, in <module>\n    from app.users import search_users, get_db_credentials, generate_reset_token, app\n  File \"/private/var/folders/r4/bn9g139x463dtyhdyr1g8xhm0000gn/T/sentinel_sandbox_l0x0w6ex/app/users.py\", line 2\n    from __future__ import annotations\n    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nSyntaxError: from __future__ imports must occur at the beginning of the file\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (errors=1)\n",
+        "passing_tests": 0,
+        "total_tests": 1,
+        "resolved_findings": 1,
+        "total_findings": 4,
+        "coverage_delta": 0.0,
+        "duration_ms": 146,
+        "sandbox_metadata": {
+          "engine": "process-sandbox",
+          "boot_time_ms": 72,
+          "vsock_status": "N/A",
+          "vcpu_count": 1,
+          "memory_mb": 256,
+          "snapshot_used": false,
+          "isolation_level": "process",
+          "workspace_path": ""
+        }
+      }
+    },
+    {
+      "event_id": "evt_c585fda2c4ed467f80966c347ed1b8ff",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "CRITIC_REJECTION",
+      "timestamp": "2026-06-05T12:55:56.775240Z",
+      "agent": "critic",
+      "task_id": null,
+      "payload": {
+        "iteration": 1,
+        "reason": "Validation rejected the patch on pre_existing_tests, static_rescan."
+      }
+    },
+    {
+      "event_id": "evt_eab148ee130e482f919ea5eb83b93d74",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "CRITIC_REJECTION",
+      "timestamp": "2026-06-05T12:55:58.102780Z",
+      "agent": "critic",
+      "task_id": null,
+      "payload": {
+        "iteration": 1,
+        "reason": "Validation rejected the patch on pre_existing_tests, static_rescan."
+      }
+    },
+    {
+      "event_id": "evt_395c306830894d5fabcb9475ab4e9793",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "CRITIC_REJECTION",
+      "timestamp": "2026-06-05T12:55:59.119252Z",
+      "agent": "critic",
+      "task_id": null,
+      "payload": {
+        "iteration": 1,
+        "reason": "Validation rejected the patch on pre_existing_tests, static_rescan."
+      }
+    },
+    {
+      "event_id": "evt_6b186c0d79d9442dab5792637c34dff3",
+      "session_id": "sess_e1fdaf3ccf1e438eb842cae0ae8fe4fb",
+      "event_type": "CRITIC_REJECTION",
+      "timestamp": "2026-06-05T12:56:00.210592Z",
+      "agent": "critic",
+      "task_id": null,
+      "payload": {
+        "iteration": 1,
+        "reason": "Validation rejected the patch on pre_existing_tests, static_rescan."
       }
     }
   ]

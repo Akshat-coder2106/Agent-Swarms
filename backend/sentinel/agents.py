@@ -213,8 +213,10 @@ class EngineerAgent:
         if finding.rule_id == "git.merge_conflict":
             return self._patch_git_conflict(original)
         if finding.rule_id == "python.unsafe_execution":
-            patched = self._patch_eval(original)
+            patched = re.sub(r"\beval\(", "ast.literal_eval(", original)
             if patched != original:
+                if "import ast" not in patched:
+                    patched = "import ast\n" + patched
                 return patched
             if operator_hint:
                 return self._annotate_for_manual_followup(original, finding)

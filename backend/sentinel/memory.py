@@ -57,7 +57,6 @@ IGNORED_DIRS = {
     "tests",
     "examples",
     "sentinel_cli.py",
-    "sentinel",  # Never scan Sentinel's own backend code
 }
 
 
@@ -107,11 +106,15 @@ def resolve_repo_path(settings: Settings, requested_path: str) -> Path:
         
         tmp_dir = Path(tempfile.mkdtemp(prefix="sentinel-repo-"))
         try:
+            import os
+            env = os.environ.copy()
+            env["GIT_TERMINAL_PROMPT"] = "0"
             subprocess.run(
                 ["git", "clone", "--depth", "1", requested_path, str(tmp_dir)],  # noqa: S603, S607
                 check=True,
                 capture_output=True,
                 text=True,
+                env=env,
             )
         except subprocess.CalledProcessError as e:
             raise RepositoryAccessError(f"Failed to clone repository: {e.stderr}") from e
@@ -136,9 +139,17 @@ def is_supported_source(path: Path) -> bool:
     return path.suffix in SUPPORTED_EXTENSIONS
 
 
+import os
+# Skip sentinel's own source only when running as GitHub Action
+_is_github_action = os.getenv("GITHUB_ACTIONS") == "true"
+_sentinel_own_path = Path(__file__).parent.resolve()
+
 def iter_source_files(root: Path, *, max_file_bytes: int) -> list[Path]:
     files: list[Path] = []
     for path in sorted(root.rglob("*")):
+        # Never scan sentinel's own installed code when running in CI
+        if _is_github_action and _sentinel_own_path in path.parents:
+            continue
         if any(part in IGNORED_DIRS for part in path.relative_to(root).parts):
             continue
         if not path.is_file() or not is_supported_source(path):

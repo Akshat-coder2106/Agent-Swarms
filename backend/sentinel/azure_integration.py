@@ -18,7 +18,7 @@ async def export_to_azure_devops(session: AuditSession) -> dict[str, Any]:
     
     if not pat:
         # Mock success for demo purposes if not configured
-        return {"status": "success", "work_items_created": len(session.findings), "mocked": True}
+        return {"status": "success", "work_items_created": len(session.tasks), "mocked": True}
         
     url = f"https://dev.azure.com/{organization}/{project}/_apis/wit/workitems/$Issue?api-version=7.0"
     
@@ -31,7 +31,7 @@ async def export_to_azure_devops(session: AuditSession) -> dict[str, Any]:
     created_ids = []
     
     async with httpx.AsyncClient() as client:
-        for finding in session.findings:
+        for finding in session.tasks:
             document = [
                 {
                     "op": "add",
