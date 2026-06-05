@@ -4,6 +4,7 @@ from .models import AuditSession, FindingCategory
 
 
 def generate_markdown_report(session: AuditSession) -> str:
+    findings = session.memory.findings if session.memory else []
     lines = []
     lines.append("# Project Sentinel - Compliance & Remediation Report")
     lines.append(f"**Session ID:** `{session.session_id}`")
@@ -13,7 +14,7 @@ def generate_markdown_report(session: AuditSession) -> str:
     lines.append("")
     
     lines.append("## Executive Summary")
-    lines.append(f"Sentinel identified **{len(session.findings)}** potential vulnerabilities. "
+    lines.append(f"Sentinel identified **{len(findings)}** potential vulnerabilities. "
                  f"**{len(session.patches)}** patches were generated and validated in the sandbox.")
     if session.approved_patch_ids:
         lines.append(f"Patches `{', '.join(session.approved_patch_ids)}` were **APPROVED** and applied.")
@@ -23,7 +24,7 @@ def generate_markdown_report(session: AuditSession) -> str:
     lines.append("| ID | Severity | Category | CWE | OWASP Top 10 | NIST SP 800-53 | File |")
     lines.append("|---|---|---|---|---|---|---|")
     
-    for finding in session.findings:
+    for finding in findings:
         owasp = "A03:2021-Injection" if finding.category == FindingCategory.INJECTION else \
                 "A08:2021-Software and Data Integrity Failures" if finding.category == FindingCategory.DESERIALIZATION else \
                 "A07:2021-Identification and Authentication Failures" if finding.category == FindingCategory.SECRET else \

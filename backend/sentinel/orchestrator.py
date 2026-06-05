@@ -6,8 +6,6 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
-
 from .agents import ArchitectAgent, CriticAgent, EngineerAgent, PatchGenerationError, ScoutAgent
 from .config import Settings
 from .langgraph_orchestrator import LangGraphConfig, SentinelLangGraph
@@ -32,6 +30,8 @@ from .models import (
     Verdict,
 )
 from .sandbox import SandboxRunner
+
+logger = logging.getLogger(__name__)
 
 
 class ApprovalError(ValueError):
