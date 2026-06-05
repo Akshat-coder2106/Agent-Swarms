@@ -411,11 +411,11 @@ function App() {
           setEvents((current) => dedupeEvents([...current, event]));
 
           // Simple heuristic to advance UI steps based on events
-          if (event.event_type === "SESSION_CREATED") { finishDemoStep("auth"); advanceDemoStep("ingest"); }
-          else if (event.event_type === "INGESTION_COMPLETED") { finishDemoStep("ingest"); advanceDemoStep("scan"); }
-          else if (event.event_type === "AGENT_ACTION" && event.agent === "Engineer") { finishDemoStep("scan"); advanceDemoStep("patch"); }
-          else if (event.event_type === "VALIDATION_STARTED") { finishDemoStep("patch"); advanceDemoStep("validate"); }
-          else if (event.event_type === "VALIDATION_COMPLETED") { finishDemoStep("validate"); advanceDemoStep("approve"); }
+          if (event.event_type === "ARCHITECT_UPDATE" && event.payload?.files_indexed !== undefined) { finishDemoStep("auth"); advanceDemoStep("ingest"); }
+          else if (event.event_type === "SCOUT_RETRIEVAL") { finishDemoStep("ingest"); advanceDemoStep("scan"); }
+          else if (event.event_type === "ENGINEER_PATCH") { finishDemoStep("scan"); advanceDemoStep("patch"); }
+          else if (event.event_type === "SANDBOX_RESULT") { finishDemoStep("patch"); advanceDemoStep("validate"); }
+          else if (event.event_type === "CRITIC_REJECTION" || event.event_type === "CRITIC_VERDICT") { finishDemoStep("validate"); advanceDemoStep("approve"); }
         }
       }
     } catch (demoError) {
@@ -649,7 +649,7 @@ function App() {
             <span>Objective</span>
             <input value={objective} onChange={(event) => setObjective(event.target.value)} />
           </label>
-          <button className="primary-button" disabled={!token || !repoPath || isStarting} onClick={startAudit}>
+          <button className="primary-button" disabled={!token || !repoPath || isStarting || !!(session && ["PENDING", "RUNNING", "AWAITING_APPROVAL", "ESCALATED"].includes(session.status))} onClick={startAudit}>
             <Play size={18} />
             {isStarting ? "Starting" : "Run Audit"}
           </button>
@@ -900,14 +900,7 @@ function StatusPill({ status }: { status: SessionStatus }) {
 }
 
 function Dag({ tasks }: { tasks: Task[] }) {
-  const visibleTasks = tasks.length
-    ? tasks
-    : [
-        { task_id: "architect", title: "Architect", target_path: "app/users.py", priority: "MEDIUM", status: "PENDING" },
-        { task_id: "scout", title: "Scout", target_path: "sqlite3.Connection", priority: "MEDIUM", status: "PENDING" },
-        { task_id: "engineer", title: "Engineer", target_path: "parameterization", priority: "MEDIUM", status: "PENDING" },
-        { task_id: "critic", title: "Critic", target_path: "validation", priority: "MEDIUM", status: "PENDING" },
-      ];
+  const visibleTasks = tasks || [];
   return (
     <div style={{ display: "grid", gap: "12px" }}>
       <div className="dag-row">

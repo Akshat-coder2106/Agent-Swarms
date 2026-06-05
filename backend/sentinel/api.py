@@ -9,12 +9,13 @@ import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .capabilities import build_system_capabilities
 from .config import load_settings
 from .github_integration import GitHubIntegrationError, create_github_pr
+from .memory import RepositoryAccessError
 from .models import (
     ApprovalRequest,
     AuditRequest,
@@ -37,6 +38,13 @@ app = FastAPI(
     version="0.1.0",
     description="Autonomous codebase auditing and remediation swarm API.",
 )
+
+@app.exception_handler(RepositoryAccessError)
+async def repository_access_error_handler(request: Request, exc: RepositoryAccessError):
+    return JSONResponse(
+        status_code=400,
+        content={"detail": str(exc)},
+    )
 
 app.add_middleware(
     CORSMiddleware,
@@ -218,7 +226,8 @@ async def demo_stream() -> StreamingResponse:
         raise HTTPException(status_code=404, detail="Demo recording not found")
         
     recording = json.loads(recording_path.read_text())
-    events = recording.get("events", [])
+    session_data = recording.get("session", {})
+    events = session_data.get("events", [])
     
     async def event_generator():
         for event in events:
