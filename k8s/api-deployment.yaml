@@ -7,7 +7,7 @@ metadata:
     app: sentinel
     component: api
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: sentinel
@@ -19,6 +19,14 @@ spec:
         component: api
     spec:
       serviceAccountName: sentinel-sa
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: api
         image: sentinel-api:latest
@@ -31,11 +39,22 @@ spec:
         - configMapRef:
             name: sentinel-config
         env:
-        - name: ANTHROPIC_API_KEY
+        - name: AZURE_OPENAI_KEY
           valueFrom:
             secretKeyRef:
               name: sentinel-secrets
-              key: anthropic-api-key
+              key: azure-openai-key
+        - name: SENTINEL_AUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: sentinel-secrets
+              key: auth-secret
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          capabilities:
+            drop: ["ALL"]
         resources:
           requests:
             cpu: "500m"
@@ -55,3 +74,14 @@ spec:
             port: 8000
           initialDelaySeconds: 10
           periodSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /app/data
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: sentinel-data
+      - name: tmp
+        emptyDir: {}

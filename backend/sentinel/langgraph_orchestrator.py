@@ -80,6 +80,7 @@ class SentinelLangGraph:
         self._critic_agent = None
         self._sandbox_runner = None
         self._graph = self._build_graph() if StateGraph else None
+        self._task_graph = self._build_task_graph() if StateGraph else None
 
     @property
     def engine_name(self) -> str:
@@ -145,6 +146,41 @@ class SentinelLangGraph:
         workflow.add_edge(AgentNode.COMPLETION.value, END)
         return workflow.compile()
 
+    def _build_task_graph(self):
+        """Compile the authoritative per-finding remediation loop."""
+        workflow = StateGraph(WorkflowState)
+        workflow.add_node(AgentNode.SCOUT.value, self._scout_node)
+        workflow.add_node(AgentNode.ENGINEER.value, self._engineer_node)
+        workflow.add_node(AgentNode.CRITIC.value, self._critic_node)
+        workflow.add_node(AgentNode.ROUTER.value, self._router_node)
+        workflow.add_node(AgentNode.ESCALATION.value, self._terminal_node)
+        workflow.add_node(AgentNode.APPROVAL.value, self._terminal_node)
+
+        workflow.set_entry_point(AgentNode.SCOUT.value)
+        workflow.add_edge(AgentNode.SCOUT.value, AgentNode.ENGINEER.value)
+        workflow.add_conditional_edges(
+            AgentNode.ENGINEER.value,
+            self._route_after_engineer,
+            {
+                "critic": AgentNode.CRITIC.value,
+                "escalation": AgentNode.ESCALATION.value,
+            },
+        )
+        workflow.add_edge(AgentNode.CRITIC.value, AgentNode.ROUTER.value)
+        workflow.add_conditional_edges(
+            AgentNode.ROUTER.value,
+            self._route_after_router,
+            {
+                "approval": AgentNode.APPROVAL.value,
+                "escalation": AgentNode.ESCALATION.value,
+                "completion": AgentNode.APPROVAL.value,
+                "engineer": AgentNode.ENGINEER.value,
+            },
+        )
+        workflow.add_edge(AgentNode.ESCALATION.value, END)
+        workflow.add_edge(AgentNode.APPROVAL.value, END)
+        return workflow.compile()
+
     async def run(self, *, session_id: str, memory: RepositoryMemory, repo_path: str) -> WorkflowState:
         state: WorkflowState = {
             "session_id": session_id,
@@ -207,6 +243,9 @@ class SentinelLangGraph:
             "mcp_messages": [],
             "operator_hint": operator_hint,
         }
+        if self._task_graph:
+            return await self._task_graph.ainvoke(state)
+
         state = await self._scout_node(state)
         state = await self._engineer_node(state)
         if self._route_after_engineer(state) == "escalation":

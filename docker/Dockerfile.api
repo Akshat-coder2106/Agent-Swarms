@@ -7,12 +7,16 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends git \
     && rm -rf /var/lib/apt/lists/*
+RUN groupadd --system sentinel && useradd --system --gid sentinel --uid 10001 sentinel
 
 COPY pyproject.toml README.md ./
 COPY backend ./backend
 COPY examples ./examples
 RUN mkdir -p /app/data
 RUN pip install --no-cache-dir .
+RUN chown -R sentinel:sentinel /app
+
+USER 10001:10001
 
 EXPOSE 8000
 CMD ["uvicorn", "sentinel.api:app", "--host", "0.0.0.0", "--port", "8000"]

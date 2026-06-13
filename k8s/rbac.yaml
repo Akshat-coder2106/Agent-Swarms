@@ -3,6 +3,7 @@ kind: ServiceAccount
 metadata:
   name: sentinel-sa
   namespace: sentinel
+automountServiceAccountToken: false
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -11,11 +12,8 @@ metadata:
   namespace: sentinel
 rules:
 - apiGroups: [""]
-  resources: ["configmaps", "secrets", "pods", "services"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-- apiGroups: ["argoproj.io"]
-  resources: ["workflows", "workflowtemplates", "cronworkflows"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  resources: ["configmaps"]
+  verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -29,29 +27,4 @@ subjects:
 roleRef:
   kind: Role
   name: sentinel-role
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: sentinel-clusterrole
-rules:
-- apiGroups: ["argoproj.io"]
-  resources: ["workflows", "workflowtemplates", "cronworkflows"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-- apiGroups: ["batch"]
-  resources: ["jobs", "cronjobs"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: sentinel-clusterrolebinding
-subjects:
-- kind: ServiceAccount
-  name: sentinel-sa
-  namespace: sentinel
-roleRef:
-  kind: ClusterRole
-  name: sentinel-clusterrole
   apiGroup: rbac.authorization.k8s.io

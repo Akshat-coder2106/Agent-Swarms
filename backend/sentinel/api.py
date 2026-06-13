@@ -6,13 +6,14 @@ from pathlib import Path
 from typing import Annotated
 
 import uvicorn
+from auth.rbac import Permission, has_permission
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from .autogen_swarm import run_autogen_audit_chat
+from .autogen_swarm import AUTOGEN_AVAILABLE, run_autogen_audit_chat
 from .capabilities import build_system_capabilities
 from .config import load_settings
 from .github_integration import GitHubIntegrationError, create_github_pr
@@ -74,14 +75,19 @@ app.add_middleware(
     allow_origins=list(settings.allowed_origins),
     allow_credentials=True,
     allow_methods=["GET", "POST"],
-    allow_headers=["Authorization", "Content-Type", "X-Session-ID"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "X-Session-ID",
+        "X-Request-Signature",
+    ],
     expose_headers=["X-Request-ID", "X-RateLimit-Remaining"],
     max_age=600,
 )
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.trusted_hosts))
 
 
-def require_auth(
+async def require_auth(
     request: Request,
     authorization: Annotated[str | None, Header()] = None,
     x_session_id: Annotated[str | None, Header()] = None,
@@ -102,27 +108,30 @@ def require_auth(
     except AuthenticationError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
 
-    # 3. Secure Payload Verification (HMAC Signature Check)
-    # Skip signature check on GET/OPTIONS requests to keep read endpoints simple
+    # 3. Secure payload verification for state-changing requests.
     if request.method in ("POST", "PUT", "PATCH"):
-        # We perform async body reading safely
-        async def verify():
-            body = await request.body()
-            verify_request_signature(
-                settings,
-                x_request_signature,
-                request.method,
-                request.url.path,
-                body
-            )
         try:
-            # For local demo flexibility, only verify if header is present or if config enforces it
-            if x_request_signature:
-                asyncio.run_coroutine_threadsafe(verify(), asyncio.get_running_loop())
+            if settings.enforce_request_signatures or x_request_signature:
+                body = await request.body()
+                verify_request_signature(
+                    settings,
+                    x_request_signature,
+                    request.method,
+                    request.url.path,
+                    body,
+                )
         except AuthenticationError as exc:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
 
     return principal
+
+
+def require_permission(principal: Principal, permission: Permission) -> None:
+    if not has_permission(principal.role, permission):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Role {principal.role} lacks permission {permission.value}",
+        )
 
 
 @app.get("/")
@@ -145,7 +154,7 @@ async def dev_token(request: AuthTokenRequest | None = None) -> dict[str, str | 
     if not settings.allow_dev_tokens:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
     subject = request.subject if request else "local-operator"
-    token = issue_token(settings, subject=subject)
+    token = issue_token(settings, subject=subject, role=request.role if request else "Admin")
     principal = verify_token(settings, token)
     return {
         "access_token": token,
@@ -153,6 +162,7 @@ async def dev_token(request: AuthTokenRequest | None = None) -> dict[str, str | 
         "expires_in": settings.token_ttl_seconds,
         "expires_at": principal.expires_at.isoformat(),
         "subject": principal.subject,
+        "role": principal.role,
     }
 
 
@@ -163,6 +173,7 @@ async def auth_context(principal: Annotated[Principal, Depends(require_auth)]) -
         session_id=principal.session_id,
         expires_at=principal.expires_at,
         issuer=settings.auth_issuer,
+        role=principal.role,
     ).model_dump(mode="json")
 
 
@@ -178,10 +189,16 @@ async def system_capabilities(_principal: Annotated[Principal, Depends(require_a
 @app.post("/api/sessions", status_code=status.HTTP_202_ACCEPTED)
 async def create_session(
     request: AuditRequest,
-    _principal: Annotated[Principal, Depends(require_auth)],
+    principal: Annotated[Principal, Depends(require_auth)],
 ) -> dict:
+    require_permission(principal, Permission.TRIGGER_WORKFLOW)
     session = await orchestrator.create_session(request)
-    scoped_token = issue_token(settings, subject="local-operator", session_id=session.session_id)
+    scoped_token = issue_token(
+        settings,
+        subject=principal.subject,
+        session_id=session.session_id,
+        role=principal.role,
+    )
     return {
         "session": session.model_dump(mode="json"),
         "session_token": scoped_token,
@@ -223,18 +240,13 @@ async def get_autogen_transcript(
     if not session.tasks:
         return {"transcript": [], "autogen_available": False}
 
-    # Use the first completed task for demo
-    task = next(
-        (t for t in session.tasks if t.patch_proposal),
-        session.tasks[0],
-    )
-
     repo_summary = f"{len(session.tasks)} findings across {session.repo_path}"
+    task = session.tasks[0]
+    patch = session.patches[0] if session.patches else None
+    validation = session.validations[0] if session.validations else None
     findings_summary = task.title
-    patch_diff = task.patch_proposal.unified_diff[:300] if task.patch_proposal else "pending"
-    sandbox_result = (
-        task.validation_result.verdict if task.validation_result else "pending"
-    )
+    patch_diff = patch.unified_diff[:300] if patch else "pending"
+    sandbox_result = validation.verdict if validation else "pending"
 
     transcript = run_autogen_audit_chat(
         session_id=session_id,
@@ -245,7 +257,7 @@ async def get_autogen_transcript(
     )
     return {
         "transcript": transcript,
-        "autogen_available": True,
+        "autogen_available": AUTOGEN_AVAILABLE,
         "session_id": session_id,
     }
 
@@ -269,16 +281,29 @@ async def stream_session(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found") from exc
 
     async def event_stream():
+        seen_event_ids: set[str] = set()
         for event in session.events:
+            seen_event_ids.add(event.event_id)
             yield _sse(event.event_type, event.model_dump(mode="json"))
         queue = await orchestrator.event_bus.subscribe(session_id)
+        heartbeat_ticks = 0
         try:
             while not await request.is_disconnected():
                 try:
-                    event = await asyncio.wait_for(queue.get(), timeout=15)
-                    yield _sse(event.event_type, event.model_dump(mode="json"))
+                    event = await asyncio.wait_for(queue.get(), timeout=1)
+                    if event.event_id not in seen_event_ids:
+                        seen_event_ids.add(event.event_id)
+                        yield _sse(event.event_type, event.model_dump(mode="json"))
                 except TimeoutError:
-                    yield ": heartbeat\n\n"
+                    persisted = await orchestrator.get_session(session_id)
+                    for event in persisted.events:
+                        if event.event_id not in seen_event_ids:
+                            seen_event_ids.add(event.event_id)
+                            yield _sse(event.event_type, event.model_dump(mode="json"))
+                    heartbeat_ticks += 1
+                    if heartbeat_ticks >= 15:
+                        heartbeat_ticks = 0
+                        yield ": heartbeat\n\n"
         finally:
             orchestrator.event_bus.unsubscribe(session_id, queue)
 
@@ -319,10 +344,16 @@ async def demo_stream() -> StreamingResponse:
 async def approve_patch(
     session_id: str,
     request: ApprovalRequest,
-    _principal: Annotated[Principal, Depends(require_auth)],
+    principal: Annotated[Principal, Depends(require_auth)],
 ) -> dict:
+    require_permission(principal, Permission.APPROVE_PATCH)
     try:
-        session = await orchestrator.approve_patch(session_id, request.patch_id)
+        session = await orchestrator.approve_patch(
+            session_id,
+            request.patch_id,
+            approved_by=principal.subject,
+            approver_role=principal.role,
+        )
         return session.model_dump(mode="json")
     except SessionNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found") from exc
@@ -395,6 +426,33 @@ async def export_sarif(
         raise HTTPException(status_code=404, detail="Session not found") from exc
 
 
+@app.get("/api/sessions/{session_id}/evidence/{patch_id}")
+async def get_patch_evidence(
+    session_id: str,
+    patch_id: str,
+    _principal: Annotated[Principal, Depends(require_auth)],
+) -> dict:
+    try:
+        session = await orchestrator.get_session(session_id)
+    except SessionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Session not found") from exc
+    evidence = next(
+        (item for item in session.evidence_bundles if item.patch_id == patch_id),
+        None,
+    )
+    if evidence is None:
+        raise HTTPException(status_code=404, detail="Evidence bundle not found")
+    approvals = [
+        item.model_dump(mode="json")
+        for item in session.approval_records
+        if item.patch_id == patch_id
+    ]
+    return {
+        "evidence": evidence.model_dump(mode="json"),
+        "approvals": approvals,
+    }
+
+
 @app.get("/api/sessions/{session_id}/policy")
 async def get_patch_policy(
     session_id: str,
@@ -416,6 +474,7 @@ async def get_patch_policy(
         return {
             "session_id": session_id,
             "patch_id": patch.patch_id,
+            "approval_eligible": decision.approval_eligible,
             "auto_approve_eligible": decision.auto_approve_eligible,
             "requires_human": decision.requires_human,
             "reason": decision.reason,
@@ -499,8 +558,9 @@ async def get_report(session_id: str, _principal: Annotated[Principal, Depends(r
 async def rollback_patch(
     session_id: str,
     request: RollbackRequest,
-    _principal: Annotated[Principal, Depends(require_auth)],
+    principal: Annotated[Principal, Depends(require_auth)],
 ) -> dict:
+    require_permission(principal, Permission.ROLLBACK)
     try:
         session = await orchestrator.rollback_patch(
             session_id=session_id,

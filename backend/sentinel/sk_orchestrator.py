@@ -10,6 +10,8 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
+from .models import AuditRequest
+
 logger = logging.getLogger(__name__)
 
 # ── Semantic Kernel (graceful degradation if not installed) ──────────────────
@@ -49,7 +51,9 @@ class SentinelSKPlugin:
         ) -> str:
             """SK-callable wrapper for the Architect agent."""
             # Delegates to your existing orchestrator's ingest logic
-            session = await self._orchestrator.start_session(repo_path)
+            session = await self._orchestrator.create_session(
+                AuditRequest(repo_path=repo_path)
+            )
             return (
                 f"Architect completed. Session: {session.session_id}. "
                 f"Tasks queued: {len(session.tasks)}"
@@ -89,12 +93,19 @@ class SentinelSKPlugin:
             task = next((t for t in session.tasks if t.task_id == task_id), None)
             if not task:
                 return f"Task {task_id} not found"
-            patch = task.patch_proposal
+            patch = next(
+                (
+                    candidate
+                    for candidate in session.patches
+                    if candidate.task_id == task_id
+                ),
+                None,
+            )
             if patch:
                 return (
                     f"Engineer generated patch for {task.title}. "
-                    f"Confidence: {patch.confidence:.0%}. "
-                    f"Method: {patch.generated_by}"
+                    f"Confidence: {patch.engineer_confidence:.0%}. "
+                    f"Risk: {patch.risk.value}"
                 )
             return f"No patch yet for task {task_id} — run full audit first."
 
@@ -114,12 +125,23 @@ class SentinelSKPlugin:
             task = next((t for t in session.tasks if t.task_id == task_id), None)
             if not task:
                 return f"Task {task_id} not found"
-            result = task.validation_result
+            result = next(
+                (
+                    candidate
+                    for candidate in session.validations
+                    if candidate.task_id == task_id
+                ),
+                None,
+            )
             if result:
+                failed_axes = [
+                    axis.name for axis in result.axes if axis.status.value == "FAIL"
+                ]
                 return (
                     f"Critic verdict: {result.verdict}. "
-                    f"Axes: {result.axes_summary}. "
-                    f"Sandbox engine: {result.sandbox_engine}"
+                    f"Failed axes: {', '.join(failed_axes) or 'none'}. "
+                    f"Sandbox engine: "
+                    f"{result.sandbox_metadata.engine if result.sandbox_metadata else 'unknown'}"
                 )
             return "Validation not run yet."
 

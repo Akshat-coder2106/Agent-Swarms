@@ -286,6 +286,8 @@ class SandboxMetadata(BaseModel):
     snapshot_used: bool = False
     isolation_level: str = "process"  # "hardware" | "process"
     workspace_path: str = ""
+    workspace_transferred: bool = False
+    workspace_sha256: str = ""
 
 
 class ValidationResult(BaseModel):
@@ -306,6 +308,38 @@ class ValidationResult(BaseModel):
     coverage_delta: float = 0.0
     duration_ms: int = Field(ge=0)
     sandbox_metadata: SandboxMetadata | None = None
+
+
+class EvidenceBundle(BaseModel):
+    """Immutable evidence identity for a validated patch."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    evidence_id: str = Field(default_factory=lambda: f"evidence_{uuid4().hex}")
+    session_id: str
+    patch_id: str
+    patch_sha256: str
+    repository_path: str
+    validation_id: str
+    validation_sha256: str
+    sandbox_engine: str
+    sandbox_isolation: str
+    workspace_sha256: str = ""
+    created_at: datetime = Field(default_factory=utc_now)
+
+
+class ApprovalRecord(BaseModel):
+    """Human authorization bound to an exact evidence and patch digest."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    approval_id: str = Field(default_factory=lambda: f"approval_{uuid4().hex}")
+    patch_id: str
+    patch_sha256: str
+    evidence_id: str
+    approved_by: str
+    approver_role: str
+    approved_at: datetime = Field(default_factory=utc_now)
 
 
 class LogicalDeltaSnapshot(BaseModel):
@@ -385,6 +419,8 @@ class AuditSession(BaseModel):
     operator_hint: str | None = None
     approved_patch_ids: list[str] = Field(default_factory=list)
     validated_patch_ids: list[str] = Field(default_factory=list)
+    evidence_bundles: list[EvidenceBundle] = Field(default_factory=list)
+    approval_records: list[ApprovalRecord] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
@@ -446,6 +482,7 @@ class AuthTokenRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     subject: str = Field(default="local-operator", min_length=1, max_length=120)
+    role: str = Field(default="Admin", min_length=1, max_length=40)
 
 
 class AuthContext(BaseModel):
@@ -455,6 +492,7 @@ class AuthContext(BaseModel):
     session_id: str | None
     expires_at: datetime
     issuer: str
+    role: str
 
 
 class CapabilityStatus(StrEnum):

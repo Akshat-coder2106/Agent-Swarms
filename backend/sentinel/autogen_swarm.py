@@ -170,7 +170,8 @@ def _static_fallback_transcript(
     patch_diff: str,
     sandbox_result: str,
 ) -> list[dict[str, str]]:
-    """Static transcript when AutoGen or Azure OpenAI is not available."""
+    """Evidence-only transcript when AutoGen or Azure OpenAI is unavailable."""
+    verdict = str(sandbox_result)
     return [
         {
             "agent": "Architect",
@@ -183,22 +184,21 @@ def _static_fallback_transcript(
             "agent": "Scout",
             "content": (
                 f"Vulnerability confirmed: {findings_summary} "
-                "Deterministic rule matched with high confidence — no false positive risk."
+                "Deterministic evidence is available for human review."
             ),
         },
         {
             "agent": "Engineer",
             "content": (
                 f"Patch generated. {patch_diff[:120]}... "
-                "Applied minimal-footprint fix targeting the exact injection point."
+                "The proposed change must still be judged by recorded validation evidence."
             ),
         },
         {
             "agent": "Critic",
             "content": (
-                f"Sandbox result: {sandbox_result}. "
-                "Adversarial vectors tested — encoding bypass and second-order injection "
-                "both blocked by the patch. Verdict: APPROVE."
+                f"Recorded sandbox result: {verdict}. "
+                "AutoGen was unavailable, so no independent adversarial verdict was produced."
             ),
         },
     ]

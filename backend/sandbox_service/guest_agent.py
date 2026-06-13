@@ -16,12 +16,16 @@ auto-started via ``/sbin/init``.
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import io
 import json
 import os
 import signal
 import socket
 import subprocess
 import sys
+import tarfile
 import time
 import traceback
 from pathlib import Path
@@ -143,6 +147,60 @@ def handle_apply_patch(payload: dict) -> dict:
         return {"exit_code": 1, "stdout": "", "stderr": str(exc)}
 
 
+def handle_sync_workspace(payload: dict) -> dict:
+    """Replace /workspace with a digest-verified archive from the host."""
+    working_dir = Path(payload.get("working_dir", "/workspace")).resolve()
+    expected_sha256 = str(payload.get("archive_sha256", ""))
+    try:
+        archive_bytes = base64.b64decode(payload.get("archive_b64", ""), validate=True)
+        actual_sha256 = hashlib.sha256(archive_bytes).hexdigest()
+        if not expected_sha256 or actual_sha256 != expected_sha256:
+            raise ValueError("Workspace archive digest mismatch")
+
+        working_dir.mkdir(parents=True, exist_ok=True)
+        for child in working_dir.iterdir():
+            if child.is_dir():
+                import shutil
+
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+
+        with tarfile.open(fileobj=io.BytesIO(archive_bytes), mode="r:gz") as archive:
+            members = archive.getmembers()
+            for member in members:
+                target = (working_dir / member.name).resolve()
+                if working_dir not in target.parents and target != working_dir:
+                    raise ValueError(f"Unsafe archive member: {member.name}")
+                if member.issym() or member.islnk():
+                    raise ValueError(f"Archive links are not allowed: {member.name}")
+                if member.isdir():
+                    target.mkdir(parents=True, exist_ok=True)
+                    continue
+                if not member.isfile():
+                    raise ValueError(f"Unsupported archive member: {member.name}")
+                source = archive.extractfile(member)
+                if source is None:
+                    raise ValueError(f"Could not read archive member: {member.name}")
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with target.open("wb") as destination:
+                    destination.write(source.read())
+
+        return {
+            "exit_code": 0,
+            "stdout": f"Workspace synchronized ({len(archive_bytes)} bytes)",
+            "stderr": "",
+            "workspace_sha256": actual_sha256,
+        }
+    except Exception as exc:
+        return {
+            "exit_code": 1,
+            "stdout": "",
+            "stderr": str(exc),
+            "workspace_sha256": "",
+        }
+
+
 def handle_health_check(_payload: dict) -> dict:
     """Return agent health information."""
     uptime_ms = int((time.monotonic() - _BOOT_TIME) * 1000)
@@ -162,6 +220,7 @@ def handle_health_check(_payload: dict) -> dict:
 HANDLERS = {
     "run_test": handle_run_test,
     "apply_patch": handle_apply_patch,
+    "sync_workspace": handle_sync_workspace,
     "health_check": handle_health_check,
 }
 

@@ -105,6 +105,7 @@ class MicrosoftIntegrationsTest(unittest.TestCase):
             confidence_threshold=load_settings().policy_confidence_threshold,
         )
         self.assertTrue(decision.requires_human)
+        self.assertTrue(decision.approval_eligible)
 
 
 if __name__ == "__main__":

@@ -8,11 +8,13 @@ from pathlib import Path
 
 from .agents import ArchitectAgent, CriticAgent, EngineerAgent, PatchGenerationError, ScoutAgent
 from .config import Settings
+from .evidence import build_evidence_bundle, patch_digest
 from .langgraph_orchestrator import LangGraphConfig, SentinelLangGraph
 from .llm import build_llm_provider
 from .memory import RepositoryIngestor, resolve_repo_path, safe_read_text
 from .models import (
     AgentRole,
+    ApprovalRecord,
     AuditEvent,
     AuditRequest,
     AuditSession,
@@ -29,6 +31,7 @@ from .models import (
     TaskStatus,
     Verdict,
 )
+from .policy_gate import evaluate_patch_policy
 from .sandbox import SandboxRunner
 
 logger = logging.getLogger(__name__)
@@ -364,10 +367,14 @@ class SentinelOrchestrator:
                 if validation.verdict == Verdict.APPROVE and delta.accumulated_delta >= 0.85:
                     task.status = TaskStatus.PASSED
                     validated_patches.append(patch.patch_id)
-                    try:
-                        _stage_validated_patch(repo_root, patch)
-                    except ApprovalError as exc:
-                        logger.warning("Could not stage patch for next task: %s", exc)
+                    session.evidence_bundles.append(
+                        build_evidence_bundle(
+                            session_id=session.session_id,
+                            repository_path=session.repo_path,
+                            patch=patch,
+                            validation=validation,
+                        )
+                    )
                     await self._emit(
                         session,
                         EventType.AUDIT_LOG,
@@ -502,10 +509,14 @@ class SentinelOrchestrator:
             if validation.verdict == Verdict.APPROVE and delta.accumulated_delta >= 0.85:
                 task.status = TaskStatus.PASSED
                 validated_patch_ids.append(patch.patch_id)
-                try:
-                    _stage_validated_patch(Path(session.repo_path), patch)
-                except ApprovalError as exc:
-                    logger.warning("Could not stage graph patch: %s", exc)
+                session.evidence_bundles.append(
+                    build_evidence_bundle(
+                        session_id=session.session_id,
+                        repository_path=session.repo_path,
+                        patch=patch,
+                        validation=validation,
+                    )
+                )
             else:
                 task.status = TaskStatus.ESCALATED
 
@@ -530,7 +541,14 @@ class SentinelOrchestrator:
         await self._save(session)
         return session
 
-    async def approve_patch(self, session_id: str, patch_id: str) -> AuditSession:
+    async def approve_patch(
+        self,
+        session_id: str,
+        patch_id: str,
+        *,
+        approved_by: str = "local-test-operator",
+        approver_role: str = "Admin",
+    ) -> AuditSession:
         session = await self._store.get(session_id)
         patch = next((candidate for candidate in session.patches if candidate.patch_id == patch_id), None)
         if not patch:
@@ -543,6 +561,26 @@ class SentinelOrchestrator:
             raise ApprovalError("Only approved patches can be applied")
         if patch_id in session.approved_patch_ids:
             raise ApprovalError(f"Patch already approved: {patch_id}")
+        decision = evaluate_patch_policy(
+            patch=patch,
+            validation=validation,
+            confidence_threshold=self._settings.policy_confidence_threshold,
+        )
+        if not decision.approval_eligible:
+            raise ApprovalError(f"Patch policy rejected approval: {decision.reason}")
+        evidence = next(
+            (
+                item
+                for item in session.evidence_bundles
+                if item.patch_id == patch_id
+            ),
+            None,
+        )
+        if evidence is None:
+            raise ApprovalError("Validated patch has no evidence bundle")
+        current_digest = patch_digest(patch)
+        if evidence.patch_sha256 != current_digest:
+            raise ApprovalError("Patch changed after validation; approval evidence is invalid")
 
         repo_root = Path(session.repo_path)
         for file_patch in patch.files:
@@ -555,6 +593,15 @@ class SentinelOrchestrator:
             target.write_text(file_patch.patched, encoding="utf-8")
 
         session.approved_patch_ids.append(patch_id)
+        session.approval_records.append(
+            ApprovalRecord(
+                patch_id=patch_id,
+                patch_sha256=current_digest,
+                evidence_id=evidence.evidence_id,
+                approved_by=approved_by,
+                approver_role=approver_role,
+            )
+        )
 
         validated_ids = {
             v.patch_id for v in session.validations if v.verdict == Verdict.APPROVE
@@ -679,6 +726,7 @@ class SentinelOrchestrator:
             payload=payload,
         )
         session.events.append(event)
+        await self._save(session)
         await self._event_bus.publish(event)
 
     async def _emit_budget(self, session: AuditSession, memory: RepositoryMemory) -> None:

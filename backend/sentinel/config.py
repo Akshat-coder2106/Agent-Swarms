@@ -1,94 +1,133 @@
+"""Configuration management for Sentinel environments."""
+
 from __future__ import annotations
 
 import os
-import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
 @dataclass(frozen=True)
 class Settings:
-    environment: str
-    allowed_origins: tuple[str, ...]
-    trusted_hosts: tuple[str, ...]
-    auth_secret: str
-    auth_issuer: str
-    token_ttl_seconds: int
-    allow_dev_tokens: bool
-    allowed_repo_roots: tuple[Path, ...]
-    max_file_bytes: int
-    sandbox_timeout_seconds: int
-    token_budget: int
-    # Azure OpenAI is the primary provider for this project
-    # Anthropic kept as optional fallback — not required for judges
-    anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-20250514"
-    azure_openai_deployment: str
-    llm_provider: str
-    llm_timeout_seconds: int
-    policy_confidence_threshold: float
-    enable_langgraph: bool
-    # Sandbox settings
-    sandbox_engine: str = "auto"  # "auto" | "firecracker" | "local"
-    sandbox_vcpu_count: int = 1
-    sandbox_memory_mb: int = 256
-    sandbox_snapshot_dir: str = "/tmp/sentinel_snapshots"
-    sandbox_pool_size: int = 1
-    sandbox_enable_network: bool = False
-
-
-def _csv(value: str) -> tuple[str, ...]:
-    return tuple(item.strip() for item in value.split(",") if item.strip())
+    """Settings with proper field ordering."""
+    
+    sentinel_environment: str
+    
+    allowed_origins: list[str] = field(
+        default_factory=lambda: [
+            "http://localhost:5173",
+            "http://localhost:8000",
+        ]
+    )
+    trusted_hosts: list[str] = field(
+        default_factory=lambda: ["localhost", "127.0.0.1"]
+    )
+    
+    auth_issuer: str = "sentinel:local"
+    auth_secret: str = field(
+        default_factory=lambda: os.getenv(
+            "SENTINEL_AUTH_SECRET",
+            "dev-secret-change-in-prod"
+        )
+    )
+    token_ttl_seconds: int = 3600
+    allow_dev_tokens: bool = field(
+        default_factory=lambda: os.getenv(
+            "SENTINEL_ALLOW_DEV_TOKENS",
+            "true"
+        ).lower() == "true"
+    )
+    
+    allowed_repo_roots: list[str] = field(
+        default_factory=lambda: [
+            str(Path(__file__).parent.parent.parent / "examples"),
+            os.getenv("SENTINEL_ALLOWED_REPO_ROOT", "/workspace"),
+        ]
+    )
+    
+    llm_provider: str = field(
+        default_factory=lambda: os.getenv("SENTINEL_LLM_PROVIDER", "azure")
+    )
+    llm_timeout_seconds: int = 60
+    
+    azure_openai_key: str = field(
+        default_factory=lambda: os.getenv("AZURE_OPENAI_KEY", "")
+    )
+    azure_openai_endpoint: str = field(
+        default_factory=lambda: os.getenv("AZURE_OPENAI_ENDPOINT", "")
+    )
+    azure_openai_deployment: str = field(
+        default_factory=lambda: os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o")
+    )
+    
+    anthropic_api_key: str | None = field(
+        default_factory=lambda: os.getenv("ANTHROPIC_API_KEY")
+    )
+    anthropic_model: str = "claude-3-opus-20240229"
+    
+    sandbox_engine: str = field(
+        default_factory=lambda: os.getenv("SENTINEL_SANDBOX_ENGINE", "local")
+    )
+    sandbox_timeout_seconds: int = 300
+    sandbox_vcpu_count: int = 2
+    sandbox_memory_mb: int = 512
+    sandbox_pool_size: int = 4
+    sandbox_snapshot_dir: str = "/tmp/sentinel-snapshots"
+    
+    session_store_backend: str = field(
+        default_factory=lambda: os.getenv("SENTINEL_SESSION_STORE", "sqlite")
+    )
+    session_db: str = field(
+        default_factory=lambda: os.getenv(
+            "SENTINEL_SESSION_DB",
+            str(Path("/tmp") / "sentinel-sessions.db")
+        )
+    )
+    redis_url: str = field(
+        default_factory=lambda: os.getenv(
+            "SENTINEL_REDIS_URL",
+            "redis://localhost:6379"
+        )
+    )
+    postgres_dsn: str = field(
+        default_factory=lambda: os.getenv(
+            "SENTINEL_POSTGRES_DSN",
+            "postgresql://sentinel:sentinel@localhost/sentinel"
+        )
+    )
+    
+    policy_confidence_threshold: float = 0.92
+    policy_require_human_approval: bool = True
+    
+    enable_opentelemetry: bool = field(
+        default_factory=lambda: os.getenv(
+            "SENTINEL_OPENTELEMETRY_ENABLED",
+            "false"
+        ).lower() == "true"
+    )
+    azure_insights_connection_string: str = field(
+        default_factory=lambda: os.getenv(
+            "APPLICATIONINSIGHTS_CONNECTION_STRING",
+            ""
+        )
+    )
+    
+    def __post_init__(self) -> None:
+        """Validate after initialization."""
+        if self.sentinel_environment == "production":
+            if not self.azure_openai_key:
+                raise ValueError("AZURE_OPENAI_KEY required in production")
+            if not self.azure_openai_endpoint:
+                raise ValueError("AZURE_OPENAI_ENDPOINT required in production")
 
 
 def load_settings() -> Settings:
-    cwd = Path.cwd().resolve()
-    default_roots = (
-        cwd,
-        cwd.parent,
-        Path(tempfile.gettempdir()).resolve(),
-        Path("/private/tmp").resolve(),
-        Path("/tmp").resolve(),  # noqa: S108
-    )
-    allowed_roots = tuple(
-        Path(root).expanduser().resolve()
-        for root in _csv(os.getenv("SENTINEL_ALLOWED_REPO_ROOTS", ""))
-    ) or default_roots
-    environment = os.getenv("SENTINEL_ENV", "development")
-    default_origins = {
-        "development": "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000",
-        "staging": "https://sentinel-staging.yourdomain.com",
-        "production": "https://sentinel.yourdomain.com",
-    }
-    return Settings(
-        environment=environment,
-        allowed_origins=_csv(os.getenv("SENTINEL_ALLOWED_ORIGINS", default_origins[environment])),
-        trusted_hosts=_csv(
-            os.getenv("SENTINEL_TRUSTED_HOSTS", "localhost,127.0.0.1,*.yourdomain.com")
-        ),
-        auth_secret=os.getenv("SENTINEL_AUTH_SECRET", "development-only-change-me"),
-        auth_issuer=os.getenv("SENTINEL_AUTH_ISSUER", "project-sentinel"),
-        token_ttl_seconds=int(os.getenv("SENTINEL_TOKEN_TTL_SECONDS", "3600")),
-        allow_dev_tokens=os.getenv("SENTINEL_ALLOW_DEV_TOKENS", "true").lower() == "true",
-        allowed_repo_roots=allowed_roots,
-        max_file_bytes=int(os.getenv("SENTINEL_MAX_FILE_BYTES", "262144")),
-        sandbox_timeout_seconds=int(os.getenv("SENTINEL_SANDBOX_TIMEOUT_SECONDS", "30")),
-        token_budget=int(os.getenv("SENTINEL_TOKEN_BUDGET", "2000000")),
-        # Azure OpenAI is primary — Anthropic is optional fallback
-        anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", ""),
-        anthropic_model=os.getenv("SENTINEL_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
-        azure_openai_deployment=os.getenv(
-            "AZURE_OPENAI_DEPLOYMENT", os.getenv("SENTINEL_AZURE_DEPLOYMENT", "gpt-4o")
-        ),
-        # Ensure Azure is always tried first
-        llm_provider=os.getenv("SENTINEL_LLM_PROVIDER", "azure"),
-        llm_timeout_seconds=int(os.getenv("SENTINEL_LLM_TIMEOUT_SECONDS", "90")),
-        policy_confidence_threshold=float(os.getenv("SENTINEL_POLICY_CONFIDENCE_THRESHOLD", "0.92")),
-        enable_langgraph=os.getenv("SENTINEL_ENABLE_LANGGRAPH", "true").lower() == "true",
-        sandbox_engine=os.getenv("SENTINEL_SANDBOX_ENGINE", "auto"),
-        sandbox_vcpu_count=int(os.getenv("SENTINEL_SANDBOX_VCPU_COUNT", "1")),
-        sandbox_memory_mb=int(os.getenv("SENTINEL_SANDBOX_MEMORY_MB", "256")),
-        sandbox_snapshot_dir=os.getenv("SENTINEL_SANDBOX_SNAPSHOT_DIR", "/tmp/sentinel_snapshots"),
-        sandbox_pool_size=int(os.getenv("SENTINEL_SANDBOX_POOL_SIZE", "1")),
-        sandbox_enable_network=os.getenv("SENTINEL_SANDBOX_ENABLE_NETWORK", "false").lower() == "true",
-    )
+    """Load settings from environment."""
+    env = os.getenv("SENTINEL_ENVIRONMENT", "development")
+    settings = Settings(sentinel_environment=env)
+    
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Settings loaded: env={env}, llm={settings.llm_provider}")
+    
+    return settings

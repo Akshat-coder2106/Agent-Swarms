@@ -16,6 +16,7 @@ class SecurityTokenTest(unittest.TestCase):
 
         self.assertEqual(principal.subject, "operator")
         self.assertEqual(principal.session_id, "sess_123")
+        self.assertEqual(principal.role, "Admin")
 
     def test_token_rejects_wrong_session(self) -> None:
         settings = load_settings()

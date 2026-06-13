@@ -143,7 +143,7 @@ class EngineerAgent:
                 if evidence.finding.rule_id == "git.merge_conflict":
                     confidence = 1.0
                 else:
-                    confidence = 0.90 if evidence.finding.category == FindingCategory.INJECTION else 0.88
+                    confidence = 0.94 if evidence.finding.category == FindingCategory.INJECTION else 0.93
                 generated_by = "deterministic-rule"
 
         # 3. If both failed, escalate

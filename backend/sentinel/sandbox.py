@@ -293,6 +293,8 @@ class SandboxRunner:
 
         sandbox = self._backend.acquire()
         boot_time_ms = int((time.monotonic() - boot_start) * 1000)
+        workspace_transferred = False
+        workspace_sha256 = ""
 
         try:
             workspace = sandbox.workspace_dir
@@ -308,6 +310,14 @@ class SandboxRunner:
 
             # Apply patch with integrity verification
             self._apply_patch(workspace, patch)
+
+            sync_workspace = getattr(sandbox, "sync_workspace", None)
+            if callable(sync_workspace):
+                workspace_sha256 = sync_workspace(
+                    workspace,
+                    timeout=self._settings.sandbox_timeout_seconds,
+                )
+                workspace_transferred = True
 
             # Run validation commands
             stdout, stderr, exit_code = self._run_validation_commands(
@@ -409,6 +419,9 @@ class SandboxRunner:
                 self._backend.engine_name == "firecracker-microvm"
             ),
             isolation_level=self._backend.isolation_level,
+            workspace_path="/workspace" if workspace_transferred else str(workspace),
+            workspace_transferred=workspace_transferred,
+            workspace_sha256=workspace_sha256,
         )
 
         return ValidationResult(

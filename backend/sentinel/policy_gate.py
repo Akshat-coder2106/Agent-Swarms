@@ -9,6 +9,7 @@ from .models import PatchProposal, ValidationResult, Verdict
 
 @dataclass(frozen=True)
 class PolicyDecision:
+    approval_eligible: bool
     auto_approve_eligible: bool
     requires_human: bool
     reason: str
@@ -27,6 +28,7 @@ def evaluate_patch_policy(
     """Enterprise policy: only high-confidence, sandbox-approved patches may skip escalation."""
     if validation is None:
         return PolicyDecision(
+            approval_eligible=False,
             auto_approve_eligible=False,
             requires_human=True,
             reason="No sandbox validation yet.",
@@ -34,6 +36,7 @@ def evaluate_patch_policy(
         )
     if validation.verdict != Verdict.APPROVE:
         return PolicyDecision(
+            approval_eligible=False,
             auto_approve_eligible=False,
             requires_human=True,
             reason=f"Sandbox verdict is {validation.verdict.value}.",
@@ -41,6 +44,7 @@ def evaluate_patch_policy(
         )
     if patch.engineer_confidence < confidence_threshold:
         return PolicyDecision(
+            approval_eligible=False,
             auto_approve_eligible=False,
             requires_human=True,
             reason=(
@@ -51,12 +55,14 @@ def evaluate_patch_policy(
         )
     if patch.risk.value in {"CRITICAL", "HIGH"}:
         return PolicyDecision(
+            approval_eligible=True,
             auto_approve_eligible=False,
             requires_human=True,
             reason=f"Risk level {patch.risk.value} requires human approval.",
             confidence_threshold=confidence_threshold,
         )
     return PolicyDecision(
+        approval_eligible=True,
         auto_approve_eligible=True,
         requires_human=False,
         reason="Meets confidence, sandbox, and risk policy.",

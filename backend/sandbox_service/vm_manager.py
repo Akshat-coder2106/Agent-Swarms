@@ -10,11 +10,15 @@ Manages the full lifecycle of Firecracker MicroVMs including:
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import io
 import json
 import logging
 import shutil
 import socket
 import subprocess
+import tarfile
 import time
 import uuid
 from dataclasses import dataclass
@@ -348,6 +352,58 @@ class VMManager:
         socket and sends a JSON-encoded command payload. Returns the
         structured result ``{exit_code, stdout, stderr}``.
         """
+        result = self._send_guest_request(
+            {
+                "type": "run_test",
+                "payload": {
+                    "command": command,
+                    "working_dir": "/workspace",
+                    "timeout": timeout,
+                },
+                "timeout": timeout,
+                "request_id": uuid.uuid4().hex[:12],
+            },
+            timeout=timeout,
+        )
+        return {
+            "exit_code": result.get("exit_code", 1),
+            "stdout": result.get("stdout", ""),
+            "stderr": result.get("stderr", ""),
+        }
+
+    def sync_workspace(self, workspace: Path, timeout: int = 120) -> str:
+        """Transfer the exact patched workspace into the guest over vsock."""
+        archive_buffer = io.BytesIO()
+        with tarfile.open(fileobj=archive_buffer, mode="w:gz") as archive:
+            for path in sorted(workspace.rglob("*")):
+                archive.add(path, arcname=path.relative_to(workspace), recursive=False)
+        archive_bytes = archive_buffer.getvalue()
+        archive_sha256 = hashlib.sha256(archive_bytes).hexdigest()
+        result = self._send_guest_request(
+            {
+                "type": "sync_workspace",
+                "payload": {
+                    "archive_b64": base64.b64encode(archive_bytes).decode("ascii"),
+                    "archive_sha256": archive_sha256,
+                    "working_dir": "/workspace",
+                },
+                "timeout": timeout,
+                "request_id": uuid.uuid4().hex[:12],
+            },
+            timeout=timeout,
+        )
+        if result.get("exit_code") != 0:
+            raise RuntimeError(f"Guest workspace transfer failed: {result.get('stderr', '')}")
+        if result.get("workspace_sha256") != archive_sha256:
+            raise RuntimeError("Guest workspace transfer digest mismatch")
+        return archive_sha256
+
+    def _send_guest_request(
+        self,
+        payload: dict[str, Any],
+        *,
+        timeout: int,
+    ) -> dict[str, Any]:
         uds_path = self.base_dir / "v.sock_5000"
 
         client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -369,16 +425,6 @@ class VMManager:
             )
 
         try:
-            payload = {
-                "type": "run_test",
-                "payload": {
-                    "command": command,
-                    "working_dir": "/workspace",
-                    "timeout": timeout,
-                },
-                "timeout": timeout,
-                "request_id": uuid.uuid4().hex[:12],
-            }
             client.sendall((json.dumps(payload) + "\n").encode("utf-8"))
 
             data = b""
@@ -396,11 +442,7 @@ class VMManager:
             if "exit_code" not in result and "payload" in result:
                 result = result["payload"]
 
-            return {
-                "exit_code": result.get("exit_code", 1),
-                "stdout": result.get("stdout", ""),
-                "stderr": result.get("stderr", ""),
-            }
+            return result
         finally:
             client.close()
 

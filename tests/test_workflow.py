@@ -17,6 +17,7 @@ class SentinelWorkflowTest(unittest.IsolatedAsyncioTestCase):
         with tempfile.TemporaryDirectory(prefix="sentinel-test-") as temp_dir:
             repo = Path(temp_dir) / "repo"
             shutil.copytree(source_repo, repo)
+            original_users = (repo / "app/users.py").read_text(encoding="utf-8")
             orchestrator = SentinelOrchestrator(settings=load_settings())
 
             session = await orchestrator.create_session(
@@ -25,12 +26,19 @@ class SentinelWorkflowTest(unittest.IsolatedAsyncioTestCase):
             session = await self._wait_until_stable(orchestrator, session.session_id)
 
             self.assertIn(session.status, [SessionStatus.ESCALATED, SessionStatus.AWAITING_APPROVAL])
+            self.assertEqual(
+                (repo / "app/users.py").read_text(encoding="utf-8"),
+                original_users,
+                "Validation must not mutate the source repository before human approval",
+            )
             if session.patches:
                 patch_id = session.patches[-1].patch_id
                 # Only test approval/rollback if we have a patch
                 if session.validations and session.validations[-1].verdict == Verdict.APPROVE:
+                    self.assertTrue(session.evidence_bundles)
                     approved = await orchestrator.approve_patch(session.session_id, patch_id)
                     self.assertEqual(approved.status, SessionStatus.COMPLETED)
+                    self.assertTrue(approved.approval_records)
                     rolled_back = await orchestrator.rollback_patch(
                         session_id=session.session_id,
                         patch_id=patch_id,

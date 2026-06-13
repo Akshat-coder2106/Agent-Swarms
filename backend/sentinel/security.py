@@ -21,6 +21,7 @@ class Principal:
     subject: str
     session_id: str | None
     expires_at: datetime
+    role: str
 
 
 def _b64url_encode(raw: bytes) -> str:
@@ -42,6 +43,7 @@ def issue_token(
     *,
     subject: str,
     session_id: str | None = None,
+    role: str = "Admin",
     ttl_seconds: int | None = None,
 ) -> str:
     now = datetime.now(UTC)
@@ -53,6 +55,7 @@ def issue_token(
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),
         "jti": uuid4().hex,
+        "role": role,
     }
     if session_id:
         payload["session_id"] = session_id
@@ -98,7 +101,12 @@ def verify_token(
     subject = str(payload.get("sub") or "")
     if not subject:
         raise AuthenticationError("Bearer token subject is missing")
-    return Principal(subject=subject, session_id=session_id, expires_at=expires_at)
+    return Principal(
+        subject=subject,
+        session_id=session_id,
+        expires_at=expires_at,
+        role=str(payload.get("role") or "ReadOnly"),
+    )
 
 
 def bearer_from_header(value: str | None) -> str:
