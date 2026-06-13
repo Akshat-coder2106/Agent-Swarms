@@ -1,3 +1,4 @@
+import ast
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
@@ -112,14 +113,14 @@ add_slide("Autonomous patching with hard guardrails.\nNo patch merges without pa
 # SLIDE 9
 add_slide("11 deterministic detection rules.\nCWE-mapped. OWASP Top 10 tagged. NIST SP 800-53 aligned.",
     "SQL injection via f-string | Python | CWE-89 | A03:2021 | HIGH\n"
-    "Code injection via eval(...) | Python | CWE-94 | A03:2021 | CRITICAL\n"
+    "Code injection via ast.literal_eval(...) | Python | CWE-94 | A03:2021 | CRITICAL\n"
     "Path traversal | Python | CWE-22 | A01:2021 | HIGH\n"
     "Insecure deserialization (pickle) | Python | CWE-502 | A08:2021 | CRITICAL\n"
     "Unsafe YAML load | Python | CWE-502 | A08:2021 | HIGH\n"
     "Weak PRNG for security | Python | CWE-338 | A02:2021 | MEDIUM\n"
     "SQL injection via template literal | JavaScript | CWE-89 | A03:2021 | HIGH\n"
     "XSS via innerHTML | JavaScript | CWE-79 | A03:2021 | HIGH\n"
-    "Code injection via eval(...) | JavaScript | CWE-94 | A03:2021 | CRITICAL\n"
+    "Code injection via ast.literal_eval(...) | JavaScript | CWE-94 | A03:2021 | CRITICAL\n"
     "Hardcoded credentials | Multi | CWE-798 | A07:2021 | CRITICAL\n"
     "Git merge conflict markers | Multi | CWE-116 | A05:2021 | LOW\n\n"
     "Plus: optional Semgrep, Trivy, Checkov, and Gitleaks integration when installed."
