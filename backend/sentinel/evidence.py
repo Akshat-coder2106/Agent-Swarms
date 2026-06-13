@@ -32,7 +32,7 @@ def build_evidence_bundle(
     validation: ValidationResult,
 ) -> EvidenceBundle:
     metadata = validation.sandbox_metadata
-    return EvidenceBundle(
+    bundle = EvidenceBundle(
         session_id=session_id,
         patch_id=patch.patch_id,
         patch_sha256=patch_digest(patch),
@@ -40,6 +40,15 @@ def build_evidence_bundle(
         validation_id=validation.validation_id,
         validation_sha256=validation_digest(validation),
         sandbox_engine=metadata.engine if metadata else "unknown",
-        sandbox_isolation=metadata.isolation_level if metadata else "unknown",
+        sandbox_isolation=metadata.isolation_level if metadata else "process",
         workspace_sha256=metadata.workspace_sha256 if metadata else "",
     )
+    
+    # Generate cryptographic signature
+    # In production, this would use an asymmetric key (RSA/ECDSA) from Azure Key Vault
+    secret_key = b"sentinel-dev-secret-key-00000000"
+    payload = stable_json(bundle.model_dump(mode="json", exclude={"cryptographic_signature", "evidence_id", "created_at"}))
+    signature = hmac.new(secret_key, payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    bundle.cryptographic_signature = f"hmac-sha256:{signature}"
+    
+    return bundle

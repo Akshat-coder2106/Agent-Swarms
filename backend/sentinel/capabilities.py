@@ -29,7 +29,9 @@ def _available_external_scanners() -> list[str]:
 def _session_persistence_label(settings: Settings) -> str:
     if os.getenv("SENTINEL_SESSION_DB", "").strip():
         return "sqlite (SENTINEL_SESSION_DB)"
-    if settings.environment == "production":
+    if settings.session_store_backend == "sqlite":
+        return f"sqlite ({settings.session_db})"
+    if settings.sentinel_environment == "production":
         return "sqlite (data/sentinel_sessions.db)"
     return "in-memory (development)"
 

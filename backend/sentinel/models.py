@@ -125,7 +125,7 @@ class SessionNotFoundError(KeyError):
 
 
 class MCPMessage(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
 
     mcp_version: str = "1.2"
     message_id: str = Field(default_factory=lambda: f"msg_{uuid4().hex}")
@@ -235,7 +235,7 @@ class EvidencePackage(BaseModel):
 
 
 class FilePatch(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
 
     file_path: str
     original: str
@@ -253,7 +253,7 @@ class FilePatch(BaseModel):
 
 
 class PatchProposal(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
 
     patch_id: str = Field(default_factory=lambda: f"patch_{uuid4().hex}")
     task_id: str
@@ -325,6 +325,7 @@ class EvidenceBundle(BaseModel):
     sandbox_engine: str
     sandbox_isolation: str
     workspace_sha256: str = ""
+    cryptographic_signature: str = ""
     created_at: datetime = Field(default_factory=utc_now)
 
 

@@ -6,8 +6,8 @@ import hashlib
 import json
 import logging
 import shutil
+import tempfile
 from pathlib import Path
-from typing import Any
 from uuid import uuid4
 
 from .models import PatchProposal
@@ -18,13 +18,15 @@ logger = logging.getLogger(__name__)
 class PatchWorkspace:
     """Manages staged patches."""
     
-    def __init__(self, base_dir: str | Path = "/tmp"):
+    def __init__(self, base_dir: str | Path | None = None):
+        if base_dir is None:
+            base_dir = Path(tempfile.gettempdir()) / "sentinel-patches"
         self.base_dir = Path(base_dir)
         self.base_dir.mkdir(exist_ok=True, parents=True)
     
     def stage_patch(self, session_id: str, patch: PatchProposal) -> Path:
         """Stage patch (NOT applied yet)."""
-        workspace_id = f"patch_{session_id}_{uuid4().hex[:8]}"
+        workspace_id = f"patch_{session_id}_{patch.patch_id}"
         workspace_path = self.base_dir / workspace_id
         workspace_path.mkdir(exist_ok=True, parents=True)
         
@@ -61,7 +63,7 @@ class PatchWorkspace:
             patch_file.chmod(0o444)
         
         (workspace_path / ".immutable").touch()
-        logger.info(f"Patch staged: {workspace_path}")
+        logger.info("Patch staged: %s", workspace_path)
         return workspace_path
     
     def apply_patch(self, workspace_path: Path, target_repo: Path) -> None:
@@ -88,10 +90,10 @@ class PatchWorkspace:
             patched = (files_dir / safe_name).read_text(encoding="utf-8")
             target_file.write_text(patched, encoding="utf-8")
             
-            logger.info(f"Applied patch: {file_path}")
+            logger.info("Applied patch: %s", file_path)
     
     def cleanup(self, workspace_path: Path) -> None:
         """Delete workspace."""
         if workspace_path.exists():
             shutil.rmtree(workspace_path, ignore_errors=True)
-            logger.info(f"Cleaned: {workspace_path}")
+            logger.info("Cleaned: %s", workspace_path)

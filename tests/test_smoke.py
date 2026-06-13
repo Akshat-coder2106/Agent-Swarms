@@ -1,6 +1,4 @@
-import pytest
 from fastapi.testclient import TestClient
-
 from sentinel.api import app
 from sentinel.capabilities import build_system_capabilities
 from sentinel.config import load_settings
