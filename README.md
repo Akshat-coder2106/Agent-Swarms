@@ -2,7 +2,7 @@
 
 Autonomous DevSecOps swarm featuring hardware-isolated Firecracker microVMs, deterministic Temporal workflows, Pydantic-enforced LLM agents, and proper Role-Based Access Control (RBAC).
 
-**🌟 [Live Demo (Frontend)](https://agent-swarms-2.vercel.app/)** · **[API (Backend)](https://agent-swarms-2.onrender.com/api/health)**
+**🌟 [Live Demo (Frontend)](https://agent-swarms-2.vercel.app/)** · **[API (Backend)](https://agent-swarms-2.onrender.com/api/health)** · **🎥 [Watch the Demo Video](https://www.youtube.com/watch?v=s7jStzbIEBc)**
 
 ### Microsoft stack (hackathon)
 - **Azure OpenAI** — `SENTINEL_LLM_PROVIDER=azure` + `AZURE_OPENAI_*` env vars

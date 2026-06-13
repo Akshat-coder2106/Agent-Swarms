@@ -550,18 +550,13 @@ class RepositoryIngestor:
         return memory
 
     def search(self, memory: RepositoryMemory, query: str, *, limit: int = 5) -> list[SearchResult]:
-        query_tokens = tokenize(query)
-        if not query_tokens:
-            return []
-        scored: list[SearchResult] = []
-        for chunk in memory.chunks:
-            chunk_tokens = tokenize(chunk.text)
-            overlap = len(query_tokens & chunk_tokens)
-            if overlap == 0:
-                continue
-            denominator = len(query_tokens | chunk_tokens) or 1
-            scored.append(SearchResult(chunk=chunk, score=overlap / denominator))
-        return sorted(scored, key=lambda result: result.score, reverse=True)[:limit]
+        """Semantic search — uses Azure AI Foundry embeddings when available,
+        falls back to token-overlap Jaccard similarity."""
+        from .azure_embeddings import get_embedder
+        embedder = get_embedder()
+        raw_results = embedder.search(memory, query, limit=limit)
+        # Convert to legacy SearchResult type for backward compat
+        return [SearchResult(chunk=r.chunk, score=r.score) for r in raw_results]
 
     def _detect_validation_commands(self, root: Path) -> list[list[str]]:
         configured = self._commands_from_sentinel_config(root)

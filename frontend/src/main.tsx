@@ -260,7 +260,18 @@ function App() {
   const [demoActive, setDemoActive] = useState(false);
   const [demoSteps, setDemoSteps] = useState<DemoStep[]>([]);
   const [demoNarration, setDemoNarration] = useState("");
+  const [transcript, setTranscript] = useState<{agent: string, content: string}[]>([]);
+  const [transcriptLoading, setTranscriptLoading] = useState(false);
+  const [skStatus, setSkStatus] = useState<string>('checking...');
 
+  useEffect(() => {
+    fetch(`${API_BASE}/api/system/sk_status`)
+      .then(r => r.json())
+      .then(d => setSkStatus(d.semantic_kernel === 'active' 
+        ? `✓ Semantic Kernel active (${d.functions?.length || 4} functions)` 
+        : 'SK: offline (deterministic mode)'))
+      .catch(() => setSkStatus('SK: offline'));
+  }, []);
   const latestPatch = session?.patches.at(-1);
   const latestValidation = session?.validations.at(-1);
   const latestDelta = session?.delta_history.at(-1);
@@ -268,6 +279,21 @@ function App() {
   const criticEvent = [...events].reverse().find((event) => event.event_type === "CRITIC_VERDICT");
   const riskAssessment = (criticEvent?.payload.risk_assessment as RiskAssessment | undefined) ?? null;
   const effectiveBearer = sessionToken || token;
+
+  const fetchTranscript = useCallback(async (sessionId: string, bearer: string) => {
+    setTranscriptLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/sessions/${sessionId}/autogen_transcript`, {
+        headers: { Authorization: `Bearer ${bearer}` }
+      });
+      const data = await res.json();
+      setTranscript(data.transcript || []);
+    } catch (e) {
+      console.error('Transcript fetch failed', e);
+    } finally {
+      setTranscriptLoading(false);
+    }
+  }, []);
 
   const issueDevToken = useCallback(
     async (subject = operator): Promise<string> => {
@@ -313,8 +339,12 @@ function App() {
         headers: { Authorization: `Bearer ${bearer}`, "X-Session-ID": sessionId },
       });
       if (response.ok) {
-        setSession(await response.json());
+        const sessionData = await response.json();
+        setSession(sessionData);
         fetchMetrics(bearer);
+        if (sessionData.status === "COMPLETED" || sessionData.status === "PENDING_APPROVAL") {
+          void fetchTranscript(sessionId, bearer);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -631,7 +661,12 @@ function App() {
             <p className="eyebrow">Autonomous audit session</p>
             <h1>Audit, patch, validate, approve, rollback</h1>
           </div>
-          <StatusPill status={session?.status ?? "PENDING"} />
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <span style={{fontSize: '12px', background: '#dcfce7', color: '#166534', padding: '3px 10px', borderRadius: '999px', whiteSpace: 'nowrap'}}>
+              {skStatus}
+            </span>
+            <StatusPill status={session?.status ?? "PENDING"} />
+          </div>
         </header>
 
         {demoActive && <DemoOverlay steps={demoSteps} narration={demoNarration} onClose={() => setDemoActive(false)} />}
@@ -718,6 +753,7 @@ function App() {
               patch={latestPatch} 
               validation={latestValidation} 
               events={events}
+              transcript={transcript}
               onApprove={approve} 
               onRollback={rollback} 
               onCreatePR={createPR}
@@ -904,14 +940,28 @@ function Dag({ tasks }: { tasks: Task[] }) {
   return (
     <div style={{ display: "grid", gap: "12px" }}>
       <div className="dag-row">
-        {visibleTasks.map((task, index) => (
-          <div className={`dag-node dag-${task.status.toLowerCase()}`} key={task.task_id}>
-            <div className="node-index">{index + 1}</div>
-            <strong>{task.title}</strong>
-            <span>{task.target_path}</span>
-            <small>{task.priority}</small>
-          </div>
-        ))}
+        {visibleTasks.map((task, index) => {
+          const owaspMap: Record<string, string> = {
+            'INJECTION': 'A03:2021',
+            'DESERIALIZATION': 'A08:2021', 
+            'SECRET': 'A07:2021',
+            'XSS': 'A03:2021',
+            'PATH_TRAVERSAL': 'A01:2021',
+          };
+          return (
+            <div className={`dag-node dag-${task.status.toLowerCase()}`} key={task.task_id}>
+              <div className="node-index">{index + 1}</div>
+              <strong>{task.title}</strong>
+              <span>{task.target_path}</span>
+              <div>
+                <small>{task.priority}</small>
+                <span style={{fontSize: '11px', background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px'}}>
+                  {owaspMap[(task as any).category] || 'A01:2021'}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
       <div style={{ border: "1px solid #cad3df", borderRadius: "8px", padding: "12px", background: "#f8fafc" }}>
         <strong style={{ fontSize: "12px", display: "block", marginBottom: "8px", color: "#253247" }}>
@@ -1065,10 +1115,12 @@ function PatchReview({
   onDownloadSarif,
   onExportAzure,
   isApproved,
+  transcript,
 }: {
   patch?: Patch;
   validation?: Validation;
   events?: AuditEvent[];
+  transcript?: {agent: string, content: string}[];
   onApprove: () => void;
   onRollback: () => void;
   onCreatePR: () => void;
@@ -1109,6 +1161,24 @@ function PatchReview({
       
       <p>{patch.rationale}</p>
       <pre>{patch.unified_diff}</pre>
+      
+      {transcript && transcript.length > 0 && (
+        <div style={{marginTop: '1.5rem', marginBottom: '1.5rem', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden'}}>
+          <div style={{background: '#f8fafc', padding: '12px 16px', borderBottom: '1px solid #e2e8f0', fontWeight: 600, fontSize: '14px'}}>
+            🤖 AutoGen Multi-Agent Audit Transcript
+          </div>
+          {transcript.map((msg, i) => (
+            <div key={i} style={{padding: '12px 16px', borderBottom: i < transcript.length-1 ? '1px solid #f1f5f9' : 'none', display: 'flex', gap: '12px'}}>
+              <span style={{
+                background: msg.agent === 'Architect' ? '#dbeafe' : msg.agent === 'Scout' ? '#dcfce7' : msg.agent === 'Engineer' ? '#fef9c3' : '#fce7f3',
+                color: '#1e293b', padding: '2px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, whiteSpace: 'nowrap', height: 'fit-content'
+              }}>{msg.agent}</span>
+              <span style={{fontSize: '14px', color: '#374151', lineHeight: 1.6}}>{msg.content}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="button-row">
         <button className="primary-button" onClick={onApprove} disabled={validation?.verdict !== "APPROVE" || isApproved}>
           <CheckCircle2 size={18} />
