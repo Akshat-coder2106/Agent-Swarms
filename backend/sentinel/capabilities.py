@@ -129,10 +129,33 @@ def build_system_capabilities(
                 ),
             ),
             CapabilityItem(
-                key="agent_orchestration",
-                label="Multi-agent orchestration",
+                key="semantic_kernel",
+                label="Semantic Kernel plugin (Microsoft)",
                 status=CapabilityStatus.IMPLEMENTED,
-                detail="Architect, Scout, Engineer, Critic with MCP envelopes and LangGraph-compatible flow.",
+                detail=(
+                    "4 agent functions registered as SK @kernel_function: "
+                    "architect_analyse, scout_retrieve, engineer_patch, critic_validate. "
+                    "GET /api/system/sk_status for live kernel state."
+                ),
+            ),
+            CapabilityItem(
+                key="autogen_swarm",
+                label="AutoGen multi-agent GroupChat (Microsoft)",
+                status=CapabilityStatus.IMPLEMENTED,
+                detail=(
+                    "4-agent GroupChat (Architect, Scout, Engineer, Critic) produces "
+                    "human-readable audit transcript per session. "
+                    "GET /api/sessions/{id}/autogen_transcript"
+                ),
+            ),
+            CapabilityItem(
+                key="azure_foundry_embeddings",
+                label="Azure AI Foundry embeddings",
+                status=CapabilityStatus.IMPLEMENTED,
+                detail=(
+                    "text-embedding-3-small via azure-ai-inference SDK replaces "
+                    "token-overlap search. Falls back gracefully without AZURE_AI_KEY."
+                ),
             ),
             CapabilityItem(
                 key="sandbox_validation",

@@ -33,11 +33,31 @@ from .store_factory import build_session_store
 settings = load_settings()
 orchestrator = SentinelOrchestrator(settings=settings, store=build_session_store(settings))
 
+# ── Semantic Kernel integration ──────────────────────────────────────────────
+from .sk_orchestrator import build_sentinel_kernel
+sk_kernel = build_sentinel_kernel(settings, orchestrator)
+
+
+
 app = FastAPI(
     title="Project Sentinel",
     version="0.1.0",
     description="Autonomous codebase auditing and remediation swarm API.",
 )
+
+# Expose SK kernel info at /api/system/sk_status
+@app.get("/api/system/sk_status")
+async def sk_status():
+    if sk_kernel is None:
+        return {"semantic_kernel": "not_installed", "plugin": None}
+    plugin = sk_kernel.get_plugin("Sentinel")
+    functions = [f for f in plugin.functions] if plugin else []
+    return {
+        "semantic_kernel": "active",
+        "plugin": "Sentinel",
+        "functions": functions,
+        "services": [s for s in sk_kernel.services],
+    }
 
 @app.exception_handler(RepositoryAccessError)
 async def repository_access_error_handler(request: Request, exc: RepositoryAccessError):
@@ -182,6 +202,48 @@ async def get_session(
         return session.model_dump(mode="json")
     except SessionNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found") from exc
+
+from .autogen_swarm import run_autogen_audit_chat
+
+@app.get("/api/sessions/{session_id}/autogen_transcript")
+async def get_autogen_transcript(
+    session_id: str,
+    _principal: Annotated[Principal, Depends(require_auth)],
+):
+    """Returns the AutoGen multi-agent conversation transcript for this session."""
+    try:
+        session = await orchestrator.get_session(session_id)
+    except SessionNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="Session not found") from exc
+        
+    if not session.tasks:
+        return {"transcript": [], "autogen_available": False}
+
+    # Use the first completed task for demo
+    task = next(
+        (t for t in session.tasks if t.patch_proposal),
+        session.tasks[0],
+    )
+
+    repo_summary = f"{len(session.tasks)} findings across {session.repo_path}"
+    findings_summary = task.title
+    patch_diff = task.patch_proposal.unified_diff[:300] if task.patch_proposal else "pending"
+    sandbox_result = (
+        task.validation_result.verdict if task.validation_result else "pending"
+    )
+
+    transcript = run_autogen_audit_chat(
+        session_id=session_id,
+        repo_summary=repo_summary,
+        findings_summary=findings_summary,
+        patch_diff=patch_diff,
+        sandbox_result=sandbox_result,
+    )
+    return {
+        "transcript": transcript,
+        "autogen_available": True,
+        "session_id": session_id,
+    }
 
 
 @app.get("/api/sessions/{session_id}/stream")

@@ -1,8 +1,11 @@
 name: "Project Sentinel - AI DevSecOps"
 description: "Automatically audit and fix security vulnerabilities with AI agents"
 inputs:
-  anthropic_api_key:
-    description: "Your Anthropic API key"
+  azure_openai_key:
+    description: "Your Azure OpenAI API key"
+    required: true
+  azure_openai_endpoint:
+    description: "Your Azure OpenAI Endpoint URL"
     required: true
   auto_pr:
     description: "Automatically create PR for approved patches"
