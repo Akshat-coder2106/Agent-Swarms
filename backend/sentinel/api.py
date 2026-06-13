@@ -9,9 +9,10 @@ import uvicorn
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from .autogen_swarm import run_autogen_audit_chat
 from .capabilities import build_system_capabilities
 from .config import load_settings
 from .github_integration import GitHubIntegrationError, create_github_pr
@@ -28,13 +29,15 @@ from .models import (
 from .orchestrator import ApprovalError, SentinelOrchestrator
 from .report_generator import generate_markdown_report
 from .security import AuthenticationError, Principal, bearer_from_header, issue_token, verify_token
+from .sk_orchestrator import build_sentinel_kernel
 from .store_factory import build_session_store
 
 settings = load_settings()
 orchestrator = SentinelOrchestrator(settings=settings, store=build_session_store(settings))
 
 # ── Semantic Kernel integration ──────────────────────────────────────────────
-from .sk_orchestrator import build_sentinel_kernel
+
+
 sk_kernel = build_sentinel_kernel(settings, orchestrator)
 
 
@@ -203,7 +206,8 @@ async def get_session(
     except SessionNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found") from exc
 
-from .autogen_swarm import run_autogen_audit_chat
+
+
 
 @app.get("/api/sessions/{session_id}/autogen_transcript")
 async def get_autogen_transcript(

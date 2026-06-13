@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 import re
 import subprocess
 import tempfile
@@ -139,7 +140,6 @@ def is_supported_source(path: Path) -> bool:
     return path.suffix in SUPPORTED_EXTENSIONS
 
 
-import os
 # Skip sentinel's own source only when running as GitHub Action
 _is_github_action = os.getenv("GITHUB_ACTIONS") == "true"
 _sentinel_own_path = Path(__file__).parent.resolve()
