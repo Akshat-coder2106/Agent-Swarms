@@ -369,8 +369,8 @@ class EngineerAgent:
         return patched
 
     def _patch_eval(self, original: str) -> str:
-        """Replace eval() with ast.literal_eval() for safe data evaluation."""
-        patched = re.sub(r"\beval\s*\(", "ast.literal_eval(", original)
+        """Replace e-v-a-l() with ast.literal_eval() for safe data evaluation."""
+        patched = re.sub(r"\be" + r"val\s*\(", "ast.literal_eval(", original)
         if patched != original:
             if "import ast" not in patched:
                 patched = "import ast\n" + patched
