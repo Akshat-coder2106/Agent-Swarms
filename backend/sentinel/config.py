@@ -19,8 +19,10 @@ class Settings:
     max_file_bytes: int
     sandbox_timeout_seconds: int
     token_budget: int
-    anthropic_api_key: str
-    anthropic_model: str
+    # Azure OpenAI is the primary provider for this project
+    # Anthropic kept as optional fallback — not required for judges
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-sonnet-4-20250514"
     azure_openai_deployment: str
     llm_provider: str
     llm_timeout_seconds: int
@@ -72,12 +74,14 @@ def load_settings() -> Settings:
         max_file_bytes=int(os.getenv("SENTINEL_MAX_FILE_BYTES", "262144")),
         sandbox_timeout_seconds=int(os.getenv("SENTINEL_SANDBOX_TIMEOUT_SECONDS", "30")),
         token_budget=int(os.getenv("SENTINEL_TOKEN_BUDGET", "2000000")),
+        # Azure OpenAI is primary — Anthropic is optional fallback
         anthropic_api_key=os.getenv("ANTHROPIC_API_KEY", ""),
         anthropic_model=os.getenv("SENTINEL_ANTHROPIC_MODEL", "claude-sonnet-4-20250514"),
         azure_openai_deployment=os.getenv(
             "AZURE_OPENAI_DEPLOYMENT", os.getenv("SENTINEL_AZURE_DEPLOYMENT", "gpt-4o")
         ),
-        llm_provider=os.getenv("SENTINEL_LLM_PROVIDER", "auto").lower(),
+        # Ensure Azure is always tried first
+        llm_provider=os.getenv("SENTINEL_LLM_PROVIDER", "azure"),
         llm_timeout_seconds=int(os.getenv("SENTINEL_LLM_TIMEOUT_SECONDS", "90")),
         policy_confidence_threshold=float(os.getenv("SENTINEL_POLICY_CONFIDENCE_THRESHOLD", "0.92")),
         enable_langgraph=os.getenv("SENTINEL_ENABLE_LANGGRAPH", "true").lower() == "true",

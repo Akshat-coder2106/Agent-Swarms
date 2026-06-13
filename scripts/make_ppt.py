@@ -137,7 +137,8 @@ add_slide("The foundation is in place.\nThree phases to production scale.",
     "Sentinel turns security alerts into reviewed, validated, rollback-safe fixes — with full human control at every gate.\n\n"
     "Live demo: https://agent-swarms-2.vercel.app\n"
     "GitHub: https://github.com/Akshat-coder2106/Agent-Swarms\n"
-    "API health: https://agent-swarms-api.onrender.com/api/health"
+    "API health: https://agent-swarms-api.onrender.com/api/health\n\n"
+    "Market: $6.7B AppSec market · 40% CAGR · Remediation automation is the unsolved layer"
 )
 
 prs.save("Project_Sentinel_Presentation.pptx")

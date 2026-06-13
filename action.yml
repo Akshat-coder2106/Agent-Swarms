@@ -1,24 +1,43 @@
 name: "Project Sentinel - AI DevSecOps"
-description: "Automatically audit and fix security vulnerabilities with AI agents"
+description: "Automatically audit and fix security vulnerabilities with AI agents. Built on Azure OpenAI, Semantic Kernel, and AutoGen."
+
 inputs:
   azure_openai_key:
-    description: "Your Azure OpenAI API key"
+    description: "Your Azure OpenAI API key (from Azure AI Foundry)"
     required: true
+
   azure_openai_endpoint:
-    description: "Your Azure OpenAI Endpoint URL"
+    description: "Your Azure OpenAI endpoint URL (e.g. https://YOUR-RESOURCE.openai.azure.com)"
     required: true
+
+  azure_openai_deployment:
+    description: "Your Azure OpenAI deployment name (e.g. gpt-4o)"
+    required: false
+    default: "gpt-4o"
+
   auto_pr:
     description: "Automatically create PR for approved patches"
     required: false
     default: "true"
+
   severity_threshold:
     description: "Minimum severity to action: LOW, MEDIUM, HIGH, CRITICAL"
     required: false
     default: "HIGH"
+
   github_token:
     description: "GitHub token for creating PRs"
     required: false
     default: "${{ github.token }}"
+
 runs:
   using: "docker"
   image: "Dockerfile.action"
+  env:
+    AZURE_OPENAI_KEY: ${{ inputs.azure_openai_key }}
+    AZURE_OPENAI_ENDPOINT: ${{ inputs.azure_openai_endpoint }}
+    AZURE_OPENAI_DEPLOYMENT: ${{ inputs.azure_openai_deployment }}
+    SENTINEL_LLM_PROVIDER: "azure"
+    AUTO_PR: ${{ inputs.auto_pr }}
+    SEVERITY_THRESHOLD: ${{ inputs.severity_threshold }}
+    GITHUB_TOKEN: ${{ inputs.github_token }}

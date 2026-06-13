@@ -1,6 +1,6 @@
 # Project Sentinel (Elite-State Architecture)
 
-Autonomous DevSecOps swarm featuring hardware-isolated Firecracker microVMs, deterministic Temporal workflows, Pydantic-enforced LLM agents, and proper Role-Based Access Control (RBAC).
+Autonomous DevSecOps swarm built on Azure AI Foundry, Semantic Kernel, and AutoGen. The application security market is valued at $6.7B and growing at 40% CAGR — Sentinel targets the unsolved remediation layer.
 
 **🌟 [Live Demo (Frontend)](https://agent-swarms-2.vercel.app/)** · **[API (Backend)](https://agent-swarms-2.onrender.com/api/health)** · **🎥 [Watch the Demo Video](https://www.youtube.com/watch?v=s7jStzbIEBc)**
 
@@ -31,7 +31,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: Akshat-coder2106/Agent-Swarms@main
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          azure_openai_key: ${{ secrets.AZURE_OPENAI_KEY }}
+          azure_openai_endpoint: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
@@ -39,7 +40,7 @@ jobs:
 1. Navigate to your repository on GitHub.
 2. Go to **Settings > Secrets and variables > Actions**.
 3. Click **New repository secret**.
-4. Name it `ANTHROPIC_API_KEY` and paste in your valid Anthropic API key.
+4. Add `AZURE_OPENAI_KEY` with your Azure OpenAI API key and `AZURE_OPENAI_ENDPOINT` with your Azure endpoint URL.
 
 ### Pricing
 | Repository Type | Cost |
@@ -47,7 +48,7 @@ jobs:
 | **Public Open Source** | **Free** (Uses GitHub-provided minutes) |
 | **Private** | Dependent on your GitHub Actions billing plan |
 
-*(Note: You will still be charged by Anthropic for LLM token usage based on the size of your repository).*
+*(Note: You will still be charged by Azure for LLM token usage based on the size of your repository).*
 
 ### Base Detection Capabilities
 Sentinel ships with 11 deterministic detection rules and additionally offloads scanning to external providers if installed:
@@ -112,7 +113,7 @@ Open `http://127.0.0.1:5173` and use this demo repository:
 ./examples/python-vulnerable-api
 ```
 
-For optional AI-backed remediation and Critic commentary, add `ANTHROPIC_API_KEY`
+For AI-backed remediation and Critic commentary, add `AZURE_OPENAI_KEY` and `AZURE_OPENAI_ENDPOINT`
 to `.env` or your shell. Without that key, Sentinel still runs deterministic
 rules and clearly labels the fallback path.
 
@@ -148,7 +149,7 @@ Add `--approve` to apply the validated patch to the demo repository.
 
 To deploy this project to the cloud for the 30-day requirement:
 1. **Push to GitHub**: Commit this codebase to a public or private GitHub repository.
-2. **Backend (Render)**: Connect your repository to Render and deploy using the provided `render.yaml`. You will need to supply the `ANTHROPIC_API_KEY` and `GITHUB_TOKEN` as environment variables in the Render dashboard.
+2. **Backend (Render)**: Connect your repository to Render and deploy using the provided `render.yaml`. You will need to supply `AZURE_OPENAI_KEY`, `AZURE_OPENAI_ENDPOINT`, and `GITHUB_TOKEN` as environment variables in the Render dashboard.
 3. **Frontend (Vercel)**: Set environment variables then redeploy:
    - `VITE_SENTINEL_API_URL` = `https://agent-swarms-2.onrender.com`
    - `VITE_DEFAULT_REPO_PATH` = `examples/python-vulnerable-api`
@@ -160,7 +161,7 @@ To deploy this project to the cloud for the 30-day requirement:
 This repository is a polished local MVP for the v4 blueprint, not the full enterprise deployment.
 
 - Implemented: typed MCP contracts, repository ingestion, local code memory, LangGraph-compatible state execution, agent roles, sandbox validation, convergence scoring, SSE telemetry, approval, rollback, auth, and audit reports.
-- AI-enabled when configured: Engineer and Critic call Anthropic when `ANTHROPIC_API_KEY` is present, with deterministic fallback for offline demos.
+- AI-enabled when configured: Engineer and Critic call Azure OpenAI (gpt-4o) via Azure AI Foundry when `AZURE_OPENAI_KEY` is present. Semantic Kernel orchestrates all four agents. Deterministic fallback ensures offline demos always work.
 - MVP adapters: local semantic/graph memory stands in for Qdrant and Neo4j; local sandbox runner stands in for Firecracker and Wasmtime.
 - Planned production integrations: managed Kubernetes, Temporal persistence, Kafka queues, external scanner CLIs, cloud secret mounting, and PagerDuty/JIRA wiring.
 
@@ -172,3 +173,6 @@ The UI reads `/api/system/capabilities` so judges can see the coverage boundary 
 PYTHONPATH=backend python3 -m unittest discover -s tests
 python3 -m compileall backend tests examples/python-vulnerable-api
 ```
+
+---
+> **Market context:** The application security market is valued at $6.7B growing at 40% CAGR (MarketsandMarkets, 2024). Vulnerability remediation automation — the layer Sentinel targets — is the fastest-growing and least-solved segment.

@@ -262,13 +262,14 @@ def build_llm_provider(settings: Settings) -> LLMProvider:
 
     ordered: tuple[str, ...]
     if preference == "azure":
-        ordered = ("azure", "anthropic", "openrouter")
-    elif preference == "anthropic":
-        ordered = ("anthropic", "azure", "openrouter")
+        ordered = ("azure", "openrouter", "anthropic")
     elif preference == "openrouter":
         ordered = ("openrouter", "azure", "anthropic")
+    elif preference == "anthropic":
+        # Only used in local dev — never in production or demo
+        ordered = ("anthropic", "azure", "openrouter")
     else:
-        ordered = ("azure", "anthropic", "openrouter")
+        ordered = ("azure", "openrouter", "anthropic")
 
     builders = {
         "azure": _azure,
