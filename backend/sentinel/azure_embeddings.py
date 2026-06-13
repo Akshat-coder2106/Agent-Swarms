@@ -34,7 +34,7 @@ except ImportError:
 
 @dataclass
 class EmbeddingSearchResult:
-    chunk: "CodeChunk"
+    chunk: CodeChunk
     score: float
     method: str  # "azure_foundry" | "token_overlap"
 
@@ -92,11 +92,11 @@ class AzureFoundryEmbedder:
         """Dot-product cosine similarity (vectors are pre-normalised by Azure)."""
         if len(a) != len(b):
             return 0.0
-        return sum(x * y for x, y in zip(a, b))
+        return sum(x * y for x, y in zip(a, b, strict=False))
 
     def search(
         self,
-        memory: "RepositoryMemory",
+        memory: RepositoryMemory,
         query: str,
         *,
         limit: int = 5,

@@ -7,7 +7,6 @@ The deterministic patching logic is unchanged underneath.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Annotated
 
@@ -16,9 +15,8 @@ logger = logging.getLogger(__name__)
 # ── Semantic Kernel (graceful degradation if not installed) ──────────────────
 try:
     import semantic_kernel as sk
-    from semantic_kernel.functions import kernel_function
     from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
-    from semantic_kernel.contents.chat_history import ChatHistory
+    from semantic_kernel.functions import kernel_function
     SK_AVAILABLE = True
 except ImportError:
     SK_AVAILABLE = False
