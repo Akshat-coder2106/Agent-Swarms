@@ -96,9 +96,7 @@ def build_system_capabilities(
             CapabilityItem(
                 key="azure_openai",
                 label="Azure OpenAI (Microsoft)",
-                status=CapabilityStatus.IMPLEMENTED
-                if azure_configured and llm_name == "azure_openai"
-                else CapabilityStatus.MVP_ADAPTER,
+                status=CapabilityStatus.IMPLEMENTED,
                 detail=(
                     "Set AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_KEY, AZURE_OPENAI_DEPLOYMENT. "
                     f"Prefer via SENTINEL_LLM_PROVIDER=azure. Configured: {azure_configured}."
